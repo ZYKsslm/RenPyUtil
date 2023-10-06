@@ -41,7 +41,7 @@ init python:
                 setattr(self, a, v)
 
         def set_task(self, task_name, attr_pattern: dict, func_dict: dict[function: dict]):
-            """调用该函数，创建一个任务，将一个函数与一个或多个自定义属性绑定，当自定义属性变成指定值时执行绑定函数。
+            """调用该函数，创建一个任务，将一个或多个函数与一个或多个自定义属性绑定，当自定义属性变成指定值时执行绑定函数。
             若函数被执行，则函数的返回值储存在实例属性`self.task_return_dict`中。其中键为任务名，值为一个返回值列表。
 
             Arguments:
@@ -141,7 +141,7 @@ init python:
                 character.set_attr(attr, value)
         
         def set_group_func(self, task_name, attr_pattern: dict, func_dict: dict[function: dict]):
-            """调用该函数，给所有角色组中的角色对象创建一个任务，将一个函数与一个或多个自定义属性绑定，当自定义属性变成指定值时执行绑定函数。
+            """调用该函数，给所有角色组中的角色对象创建一个任务，将一个或多个函数与一个或多个自定义属性绑定，当自定义属性变成指定值时执行绑定函数。
             若函数被执行，则函数的返回值储存在对象的实例属性`self.task_return_dict`中。其中键为任务名，值为一个返回值列表。
 
             Arguments:
