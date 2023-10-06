@@ -99,7 +99,7 @@ init python:
             """初始化方法。
 
             Keyword Arguments:
-                character_group -- 一个包含高级角色对象的元组。若该参数不填，则传入参数作为角色对象。 (default: {None})
+                character_group -- 一个包含高级角色对象的列表。若该参数不填，则传入参数作为角色对象。 (default: {None})
             """
 
             self.character_group = character_group if character_group else list(characters)
