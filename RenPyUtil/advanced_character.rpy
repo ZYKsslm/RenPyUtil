@@ -1,9 +1,14 @@
-# 此文件提供了一系列基于Ren'Py的高级角色类
+# 此文件提供了一系列基于Ren'Py的功能类，以供Ren'Py开发者调用
+# 作者  ZYKsslm
 # 仓库  https://github.com/ZYKsslm/RenPyUtil
-# 声明  该源码使用 MIT 协议开源，但若使用需要在程序中标明
+# 声明  该源码使用 MIT 协议开源，但若使用需要在程序中标明作者信息
 
 
 init python:
+
+
+    import random
+
 
     class AdvancedCharacter(ADVCharacter):
         """该类继承自ADVCharacter类，在原有的基础上增添了一些新的属性和方法。"""
@@ -20,7 +25,7 @@ init python:
 
             self.func_task_list = []
             self.task_return_dict = {}
-            self.customized_attr_list = []
+            self.customized_attr_dict = {}
             super().__init__(name, kind=kind, **properties)
 
         def add_attr(self, attr_dict: dict = None, **attrs):
@@ -37,11 +42,15 @@ init python:
             attr = attr_dict if attr_dict else attrs
 
             for a, v in attr.items():
-                self.customized_attr_list.append(a)
+                self.customized_attr_dict.update(
+                    {
+                        a: v
+                    }
+                )
                 setattr(self, a, v)
 
         def set_task(self, task_name, attr_pattern: dict, func_dict: dict[function: dict]):
-            """调用该函数，创建一个任务，将一个或多个函数与一个或多个自定义属性绑定，当自定义属性变成指定值时执行绑定函数。
+            """调用该函数，创建一个任务，将一个函数与一个或多个自定义属性绑定，当自定义属性变成指定值时执行绑定函数。
             若函数被执行，则函数的返回值储存在实例属性`self.task_return_dict`中。其中键为任务名，值为一个返回值列表。
 
             Arguments:
@@ -60,6 +69,7 @@ init python:
             """
 
             setattr(self, attr, value)
+            self.customized_attr_dict[attr] = value
 
         def __setattr__(self, key, value):
             super().__setattr__(key, value)
@@ -81,28 +91,61 @@ init python:
                 self.task_return_dict.update(
                     {task_name: func_return_list}
                 )
-    
+
         def get_customized_attr(self):
-            """调用此方法，返回一个元素为自定义属性的列表，若无则为空列表。
+            """调用此方法，返回一个键为自定义属性，值为属性值的字典，若无则为空字典。
 
             Returns:
-                一个元素为自定义属性的列表。
+                个键为自定义属性，值为属性值的字典。
             """
 
-            return self.customized_attr_list
+            return self.customized_attr_dict
+
+
+    class CharacterError(Exception):
+        """该类为一个异常类，用于检测角色对象。"""
+
+        errorType = {
+            0: "错误地传入了一个ADVCharacter类，请传入一个AdvancedCharacter高级角色类！",
+            1: "传入对象类型异常，请传入一个AdvancedCharacter高级角色类！"
+        }
+
+        def __init__(self, *args: object):
+            super().__init__(args)
+            self.errorCode = None
+
+        def check(self, obj):
+
+            if isinstance(obj, AdvancedCharacter):
+                return
+            elif (not isinstance(obj, AdvancedCharacter)) and (isinstance(obj, ADVCharacter)):
+                self.errorCode = 0
+            else:
+                self.errorCode = 1
+            raise self
+
+        def __str__(self):
+            return CharacterError.errorType[self.errorCode]
 
 
     class CharacterGroup(object):
         """该类用于管理多个高级角色（AdvancedCharacter）对象。"""
 
-        def __init__(self, character_group: list[AdvancedCharacter] = None, *characters: AdvancedCharacter):
-            """初始化方法。
+        def __init__(self, *characters: AdvancedCharacter):
+            """初始化方法。"""
 
-            Keyword Arguments:
-                character_group -- 一个包含高级角色对象的列表。若该参数不填，则传入参数作为角色对象。 (default: {None})
-            """
+            self.type_checker = CharacterError()
+            self.character_group = list(characters)
 
-            self.character_group = character_group if character_group else list(characters)
+            # 检查角色组中对象类型
+            for obj in self.character_group:
+                self.type_checker.check(obj)
+
+        def get_random_character(self):
+            """调用该函数，返回角色组中随机一个角色对象。"""
+
+            character = random.choice(self.character_group)
+            return character
 
         def del_character(self, character):
             """调用该函数，删除角色组中的一个角色对象。
@@ -141,7 +184,7 @@ init python:
                 character.set_attr(attr, value)
         
         def set_group_func(self, task_name, attr_pattern: dict, func_dict: dict[function: dict]):
-            """调用该函数，给所有角色组中的角色对象创建一个任务，将一个或多个函数与一个或多个自定义属性绑定，当自定义属性变成指定值时执行绑定函数。
+            """调用该函数，给所有角色组中的角色对象创建一个任务，将一个函数与一个或多个自定义属性绑定，当自定义属性变成指定值时执行绑定函数。
             若函数被执行，则函数的返回值储存在对象的实例属性`self.task_return_dict`中。其中键为任务名，值为一个返回值列表。
 
             Arguments:
