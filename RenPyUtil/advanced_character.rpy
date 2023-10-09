@@ -42,12 +42,8 @@ init python:
             attr = attr_dict if attr_dict else attrs
 
             for a, v in attr.items():
-                self.customized_attr_dict.update(
-                    {
-                        a: v
-                    }
-                )
                 setattr(self, a, v)
+                self.customized_attr_dict[a] = v
 
         def set_task(self, task_name, attr_pattern: dict, func_dict: dict[function: dict]):
             """调用该函数，创建一个任务，将一个函数与一个或多个自定义属性绑定，当自定义属性变成指定值时执行绑定函数。
@@ -79,10 +75,12 @@ init python:
                 attr_dict = task[1]
                 func_dict = task[2]
 
+                self.customized_attr_dict[key] = value
+
                 for attr, value in attr_dict.items():
-                    if getattr(self, attr) != value:
+                    if key != attr or getattr(self, attr) != value:
                         return
-                
+
                 func_return_list = []
                 for func, args in func_dict.items():
                     func_return = func(args)
@@ -170,7 +168,7 @@ init python:
             attr = attr_dict if attr_dict else attrs
 
             for character in self.character_group:
-                character.add_attr(attr_dicr=attr)
+                character.add_attr(attr)
 
         def set_group_attr(self, attr, value):
             """调用该函数，更改角色组中所有角色对象的一项自定义属性值。若没有该属性，则创建一个。
