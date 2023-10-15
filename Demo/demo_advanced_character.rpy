@@ -3,9 +3,7 @@ init python:
  
  
     # 一个任务函数，该函数的参数必须为一个字典
-    def love(param: dict):
-        name = param["name"]
-        speaker = param["speaker"]
+    def love(speaker, name):
  
         renpy.say(speaker, fr"{name}, I love you.")
         recieve = renpy.input("So, your answer is......")
@@ -37,12 +35,9 @@ label start:
             attr_pattern={
                 "love_point": 100
             },
-            func_dict={
-                love: {
-                    "name": "Tom",
-                    "speaker": e
-                }   # 任务函数的参数
-            }
+            func=love,
+            speaker=e,  # 传入函数的参数
+            name="Tom"
         )
  
         e.love_point += 50
