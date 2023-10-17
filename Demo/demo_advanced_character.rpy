@@ -2,7 +2,7 @@
 init python:
  
  
-    # 一个任务函数，该函数的参数必须为一个字典
+    # 一个任务函数
     def love(speaker, name):
  
         renpy.say(speaker, fr"{name}, I love you.")
