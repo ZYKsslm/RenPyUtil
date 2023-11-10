@@ -1,44 +1,51 @@
-# 游戏的脚本可置于此文件中。
 init python:
-
-    # 定义接收事件的函数
-    def receive_im(data):
-        save_path = renpy.config.gamedir
-        with open(f"{save_path}/images/im.png", "ab") as im:
-            im.write(data)
-
-
+ 
+    def conn_suc():
+        renpy.notify("连接成功")
+ 
+    def error(e):
+        renpy.notify(e)
+ 
+    def get_im(data):
+        with open(f"{renpy.config.gamedir}/images/image.png", "wb+") as f:
+            f.write(data)
+ 
+        renpy.notify("图片保存成功！")
+ 
+ 
 default e = Character("艾琳", who_color="#00CED1")
-
-# 游戏在此开始。
-
+ 
+ 
 label start:
-
+ 
     e "ren_communicator模块测试。"
-
+ 
     python:
-        client = RenClient("192.168.2.93", 8888, max_data_size=4096) 
-        client.auto_decode = False  # 由于接收的是图片而不是字符串，所以不用自动转换。
-        client.set_receive_event(
-            func=receive_im
-        )
-        client.run()    # 这一行主线程会被阻塞，即卡住直到成功连接主机或引发超时报错。
-
-    e "你想看哪张图片？"
+        # 使用with语句可防止用户回滚导致重复发送消息
+        with RenClient("192.168.2.23", 8888, max_data_size=5242880) as client:
+            client.set_conn_event(conn_suc)
+            client.set_receive_event(get_im)
+            client.set_error_event(error)
+            client.run()
+ 
+            client.listen_event(RenClient.CONNECT_EVENT, "正在等待连接......")
+ 
+    e  "你想看哪一张图片？"
     menu:
-        # 将图片名称发送给服务端
         "第一张":
-            $ client.send("im1".encode("utf-8"))    # 字符串的encode()方法可以手动把字符串转换成字节流。
+            $ im = "im1"
         "第二张":
-            $ client.send("im2".encode("utf-8"))
+            $ im = "im2"
         "第三张":
-            $ client.send("im3".encode("utf-8"))
+            $ im = "im3"
         "第四张":
-            $ client.send("im4".encode("utf-8"))
-
-    # 阻塞主线程。
-    pause
-
-    $ client.close()   # 由于回到主菜单通信依然存在，所以需要手动关闭所有连接。
-
+            $ im = "im4"
+ 
+    python:
+        with client:
+            res = client.send(im.encode("utf-8"))
+            client.listen_event(RenClient.CONNECT_EVENT, "正在接收图片......")
+     
+    e "错误日志：\n[client.error_log!q]"
+ 
     return
