@@ -63,7 +63,7 @@ init -1 python:
             self.socket.bind((self.ip, self.port))
 
             self.client_socket_list = []
-
+            self.has_communicated = False
             self.current_prompt = None
             self.received = False
             self.reply = None
@@ -204,6 +204,7 @@ init -1 python:
         def run(self):
             """调用该方法，开始监听端口，创建连接线程。"""            
 
+            self.has_communicated = True
             self.socket.listen(self.max_conn)
             renpy.invoke_in_thread(self._accept)
 
@@ -226,7 +227,7 @@ init -1 python:
             while True:
                 try:
                     client_socket, address = self.socket.accept()
-                except socket.error as err:
+                except Exception as err:
                     self.error_log[datetime.now().strftime(r"%Y-%m-%d %H:%M:%S")] = err
                     return
 
@@ -245,7 +246,7 @@ init -1 python:
                 try:
                     data = client_socket.recv(max_data_size)
                     self.received = True
-                except socket.error as err:
+                except Exception as err:
                     self.received = False
                     self.error_log[datetime.now().strftime(r"%Y-%m-%d %H:%M:%S")] = err
                     client_socket.close()
@@ -266,7 +267,7 @@ init -1 python:
                 if self.reply:
                     try:
                         client_socket.send(self.reply)
-                    except socket.error as err:
+                    except Exception as err:
                         self.error_log[datetime.now().strftime(r"%Y-%m-%d %H:%M:%S")] = err
                         client_socket.close()
                         self.client_socket_list.remove(client_socket)
@@ -291,7 +292,7 @@ init -1 python:
             
             try:
                 client_socket.send(msg)
-            except socket.error as err:
+            except Exception as err:
                 self.error_log[datetime.now().strftime(r"%Y-%m-%d %H:%M:%S")] = err
                 client_socket.close()
                 self.client_socket_list.remove(client_socket)
@@ -359,6 +360,7 @@ init -1 python:
             self.max_data_size = max_data_size
 
             self.is_conn = False
+            self.has_communicated = False
             self.received = False
             self.current_prompt = None
             self.reply = None
@@ -468,6 +470,7 @@ init -1 python:
         def run(self):
             """调用该方法，开始尝试连接服务端。"""            
             
+            self.has_communicated = True
             renpy.invoke_in_thread(self._connect)
 
         def close(self):
@@ -489,7 +492,7 @@ init -1 python:
             try:
                 self.socket.connect((self.target_ip, self.target_port))
                 self.is_conn = True
-            except socket.error as err:
+            except Exception as err:
                 self.error_log[datetime.now().strftime(r"%Y-%m-%d %H:%M:%S")] = err
                 self.is_conn = False
                 if self.error_event:
@@ -511,7 +514,7 @@ init -1 python:
                 try:
                     data = self.socket.recv(self.max_data_size)
                     self.received = True
-                except socket.error as err:
+                except Exception as err:
                     self.received = False
                     self.error_log[datetime.now().strftime(r"%Y-%m-%d %H:%M:%S")] = err
                     self.socket.close()
@@ -550,7 +553,7 @@ init -1 python:
             """                     
             try:
                 self.socket.send(msg)
-            except socket.error as err:
+            except Exception as err:
                 self.error_log[datetime.now().strftime(r"%Y-%m-%d %H:%M:%S")] = err
 
                 if self.error_event:
