@@ -1,51 +1,58 @@
 init python:
- 
     def conn_suc():
-        renpy.notify("连接成功")
+        renpy.notify("连接成功！点击屏幕继续......")
  
-    def error(e):
-        renpy.notify(e)
+    def conn_err(err):
+        renpy.notify(f"出现异常：\n{err}")
  
-    def get_im(data):
-        with open(f"{renpy.config.gamedir}/images/image.png", "wb+") as f:
-            f.write(data)
- 
-        renpy.notify("图片保存成功！")
+    def receive(msg):
+        renpy.notify(f"接收到服务端消息：\n{msg.decode('utf-8')}")
  
  
-default e = Character("艾琳", who_color="#00CED1")
+define e = Character("艾琳")
+define client = RenClient("192.168.2.23", 8888)
+ 
+screen leave():
+    frame:
+        align (0.0, 0.0)
+        textbutton "返回标题":
+            action MainMenu(save=False)
+ 
+# 确保回到标题前关闭连接
+label before_main_menu:
+    if client.has_communicated:
+        $ client.close()
+    return
+ 
+# 确保退出前关闭连接
+label quit:
+    if client.has_communicated:
+        $ client.close()
+    return
  
  
 label start:
  
-    e "ren_communicator模块测试。"
- 
-    python:
-        # 使用with语句可防止用户回滚导致重复发送消息
-        with RenClient("192.168.2.23", 8888, max_data_size=5242880) as client:
-            client.set_conn_event(conn_suc)
-            client.set_receive_event(get_im)
-            client.set_error_event(error)
-            client.run()
- 
-            client.listen_event(RenClient.CONNECT_EVENT, "正在等待连接......")
- 
-    e  "你想看哪一张图片？"
+    e "请愉快地聊天吧！"
     menu:
-        "第一张":
-            $ im = "im1"
-        "第二张":
-            $ im = "im2"
-        "第三张":
-            $ im = "im3"
-        "第四张":
-            $ im = "im4"
+        "继续":
+            jump chat
+        "算了":
+            return
+  
+    return
  
+label chat:
+    show screen leave()
     python:
         with client:
-            res = client.send(im.encode("utf-8"))
-            client.listen_event(RenClient.CONNECT_EVENT, "正在接收图片......")
-     
-    e "错误日志：\n[client.error_log!q]"
- 
-    return
+            client.set_conn_event(conn_suc)
+            client.set_receive_event(receive)
+            client.set_error_event(conn_err)
+            renpy.notify("开始连接！")
+            client.run()
+            client.listen_event(RenClient.CONNECT_EVENT, "正在连接中......")
+            while True:
+                content = renpy.input("说点什么呢？")
+                if client.send(content.encode("utf-8")):
+                    renpy.notify("消息发送成功！")

@@ -1,47 +1,59 @@
 init python:
- 
-    # 连接成功后执行的函数
     def conn_suc(socket):
-        renpy.notify(f"{socket.getpeername()}已连接")
+        renpy.notify("连接成功！点击屏幕继续......")
  
-    # 接收到命令后执行的函数
-    def get_im(prompt, socket, server):
-        renpy.notify("开始发送图片")
+    def conn_err(err):
+        renpy.notify(f"出现异常：\n{err}")
  
-        path = f"{renpy.config.gamedir}/images/{prompt.decode('utf-8')}.png"
-        with open(path, "rb") as f:
-            if not server.send(socket, f.read()):
-                renpy.notify("发送失败！")
+    def receive(msg, socket):
+        renpy.notify(f"接收到{socket.getpeername()[0]}的消息：\n{msg.decode('utf-8')}")
  
-        renpy.notify("发送成功！")
  
 define e = Character("艾琳")
+define server = RenServer()
+ 
+screen leave():
+    frame:
+        align (0.0, 0.0)
+        textbutton "返回标题":
+            action MainMenu(save=False)
+ 
+# 确保回到标题前关闭连接
+label before_main_menu:
+    if server.has_communicated:
+        $ server.close()
+    return
+ 
+# 确保退出前关闭连接
+label quit:
+    if server.has_communicated:
+        $ server.close()
+    return
  
  
 label start:
  
-    e "ren_communicator模块测试。"
-    python:
-        # 使用with语句防止用户回滚导致重复创建启动线程
-        with RenServer(max_data_size=5242880) as server:    # 5242880B相当于5MB
-            server.run()
-            # 创建命令对象
-            im_prompt = Prompt(
-                True,
-                "im1",
-                "im2",
-                "im3",
-                "im4"
-            )
-            # 创建命令任务
-            server.set_prompt(im_prompt, get_im, server=server)
-            # 创建成功连接后的任务
-            server.set_conn_event(conn_suc)
-            # 监听连接事件
-            server.listen_event(RenServer.CONNECT_EVENT, "正在等待连接......")
-            # 监听该命令事件
-            server.listen_event(RenServer.PROMPT_EVENT, "等待中......", im_prompt)
-  
-    e "错误日志：\n[server.error_log!q]"   # 打印错误日志，若无则为空字典。
+    e "请愉快地聊天吧！"
+    menu:
+        "继续":
+            jump chat
+        "算了":
+            return
   
     return
+ 
+label chat:
+    show screen leave()
+    python:
+        with server:
+            server.set_conn_event(conn_suc)
+            server.set_receive_event(receive)
+            server.set_error_event(conn_err)
+            renpy.notify("开始连接！")
+            server.run()
+            server.listen_event(RenServer.CONNECT_EVENT, "正在连接中......")
+            while True:
+                content = renpy.input("说点什么呢？")
+                for socket in server.client_socket_list:
+                    if server.send(socket, content.encode("utf-8")):
+                        renpy.notify("消息发送成功！")
