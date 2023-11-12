@@ -3,7 +3,7 @@ init python:
  
  
     # 一个任务函数
-    def love(speaker, name):
+    def love_event(speaker, name):
  
         renpy.say(speaker, fr"{name}, I love you.")
         recieve = renpy.input("So, your answer is......")
@@ -22,28 +22,30 @@ label start:
     python:
         # 两种给高级角色增添属性的写法
         e.add_attr(love_point=50)
-        e.add_attr({"strength": 100})
+        e.add_attr({"strength": 100, "health": 40})
  
     # 输出角色所有的自定义属性及其值
     e "[e.customized_attr_dict!q]"
  
     python:
  
-        # 给该角色创建一个任务并绑定一个任务函数，当该角色对象的自定义属性love_point的值达到100时执行任务函数love
+        # 给该角色创建一个任务并绑定一个任务函数，当该角色对象的自定义属性love_point的值达到100，health值达到50时执行任务函数love
         e.set_task(
-            task_name="love_task",
+            task_name="love_event",
             attr_pattern={
-                "love_point": 100
+                "love_point": 100,
+                "health": 50
             },
-            func=love,
-            speaker=e,  # 传入函数的参数
-            name="Tom"
+            func_dict={
+                love_event: (e, "Tom")  #这里字典可以添加多个任务函数
+            }
         )
  
         e.love_point += 50
+        e.health += 10
  
         # 获取任务函数返回值
-        recieve = e.task_return_dict["love_task"][0]
+        recieve = e.task_return_dict["love_event"][0]
      
     e "Your answer is '[recieve!q]'"
  
