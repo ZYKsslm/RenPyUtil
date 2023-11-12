@@ -4,16 +4,14 @@
 # 声明  该源码使用 MIT 协议开源，但若使用需要在程序中标明作者信息
 
 
-init python:
+init -1 python:
 
 
     import random
 
-
+    NotSet = renpy.object.Sentinel("NotSet")
     class AdvancedCharacter(ADVCharacter):
         """该类继承自ADVCharacter类，在原有的基础上增添了一些新的属性和方法。"""
-
-        NotSet = renpy.object.Sentinel("NotSet")
 
         def __init__(self, name=NotSet, kind=None, **properties):
             """初始化方法。若实例属性需要被存档保存，则定义对象时请使用`default`语句或Python语句。
@@ -23,10 +21,10 @@ init python:
                 kind -- 角色类型。 (default: {None})
             """
 
-            self.func_task_list = []
+            super().__init__(name, kind=kind, **properties)
+            self.task_list = []
             self.task_return_dict = {}
             self.customized_attr_dict = {}
-            super().__init__(name, kind=kind, **properties)
 
         def add_attr(self, attr_dict: dict = None, **attrs):
             """调用该方法，给该角色对象创建自定义的一系列属性。
@@ -45,16 +43,22 @@ init python:
                 setattr(self, a, v)
                 self.customized_attr_dict[a] = v
 
-        def set_task(self, task_name, attr_pattern: dict, func_dict: dict[function: dict]):
+        def set_task(self, task_name, attr_pattern: dict, func_dict: dict[function: tuple], run_in_new_thread=False):
             """调用该方法，创建一个任务，将一个函数与一个或多个自定义属性绑定，当自定义属性变成指定值时执行绑定函数。
+
             若函数被执行，则函数的返回值储存在实例属性`self.task_return_dict`中。其中键为任务名，值为一个返回值列表。
+            当任务函数在新线程中运行时无法获得返回值。
 
             Arguments:
                 task_name -- 任务名。
                 attr_pattern -- 一个键为自定义属性的字典。当该角色对象的自定义属性变成字典中指定的值时执行绑定函数。
-                func_dict -- 一个键为函数，值为一个参数字典的字典。
-            """
-            self.func_task_list.append([task_name, attr_pattern, func_dict])
+                func_dict -- 一个键为函数，值为一个参数元组的字典。
+
+            Keyword Arguments:
+                run_in_new_thread -- 若为True，则任务函数在新线程中运行 (default: {False})
+            """            
+
+            self.task_list.append([task_name, attr_pattern, func_dict, run_in_new_thread])
 
         def set_attr(self, attr, value):
             """调用该方法，修改一个自定义属性的值。若没有该属性则创建一个。
@@ -70,25 +74,32 @@ init python:
         def __setattr__(self, key, value):
             super().__setattr__(key, value)
 
-            for task in self.func_task_list:
-                task_name = task[0]
-                attr_dict = task[1]
-                func_dict = task[2]
+            # 跳过初始化属性赋值阶段
+            # 跳过非自定义属性
+            if (not hasattr(self, "customized_attr_dict")) or (not key in self.customized_attr_dict.keys()):
+                return
 
-                self.customized_attr_dict[key] = value
+            for task in self.task_list:
+                task_name, attr_pattern, func_dict, run_in_new_thread = task
 
-                for attr, value in attr_dict.items():
-                    if key != attr or getattr(self, attr) != value:
+                for attr, value in attr_pattern.items():
+                    if getattr(self, attr) != value:
                         return
-
+                
                 func_return_list = []
                 for func, args in func_dict.items():
-                    func_return = func(**args)
-                    func_return_list.append(func_return)
-
-                self.task_return_dict.update(
-                    {task_name: func_return_list}
-                )
+                    if run_in_new_thread:
+                        renpy.invoke_in_thread(func, *args)
+                    else:
+                        func_return = func(*args)
+                        func_return_list.append(func_return)
+                
+                if func_return_list:
+                    self.task_return_dict.update(
+                        {
+                            task_name: func_return_list
+                        }
+                    )
 
         def get_customized_attr(self):
             """调用该方法，返回一个键为自定义属性，值为属性值的字典，若无则为空字典。
