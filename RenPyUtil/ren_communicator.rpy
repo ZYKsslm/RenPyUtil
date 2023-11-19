@@ -308,7 +308,10 @@ init -1 python:
         def __enter__(self):
             # 进入with语句后执行的方法
             # 防止用户回滚游戏重复启动线程
+            # 禁止用户存档
+            # 禁止用户跳过
             config.rollback_enabled = False
+            config.allow_skipping = False
             renpy.block_rollback()
             return self
 
@@ -316,6 +319,7 @@ init -1 python:
             # 当退出with语句后允许回滚
             config.rollback_enabled = True
             renpy.block_rollback()
+            config.allow_skipping = True
     
 
     class RenClient(object):
@@ -566,9 +570,11 @@ init -1 python:
 
         def __enter__(self):
             config.rollback_enabled = False
+            config.allow_skipping = False
             renpy.block_rollback()
             return self
 
         def __exit__(self, exc_type, exc_val, exc_tb):
             config.rollback_enabled = True
+            config.allow_skipping = True
             renpy.block_rollback()
