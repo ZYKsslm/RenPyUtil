@@ -25,7 +25,7 @@
 
 ## :bar_chart: 已经实现的所有模块
 1. [高级角色类`advanced_character`](./RenPyUtil/advanced_character.rpy)
-2. [RenCommunicator类`ren_communicator`](./RenPyUtil/advanced_character.rpy)
+2. [RenCommunicator类`ren_communicator`](./RenPyUtil/ren_communicator.rpy)
 3. [RenChatGPT类`ren_chatgpt`](./RenPyUtil/ren_chatgpt.rpy)
 
 ## :book: 说明
