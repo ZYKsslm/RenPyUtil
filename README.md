@@ -20,8 +20,8 @@
 每个模块都有对应的使用示范，请在[Demo](./Demo)中查看。
 
 ## :bar_chart: 已经实现的所有模块
-1. [advanced_character](./RenPyUtil/advanced_character.rpy)
-2. [ren_communicator](./RenPyUtil/advanced_character.rpy)
+1. [高级角色类`advanced_character`](./RenPyUtil/advanced_character.rpy)
+2. [RenCommunicator类`ren_communicator`](./RenPyUtil/advanced_character.rpy)
 
 ## :book: 说明
 **该项目使用 MIT 协议开源，但若使用需要在程序中标明。**
