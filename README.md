@@ -10,7 +10,7 @@
 - [x] 内置文档，符合PEP257，更易上手。
 - [x] 高级角色类，拥有更多可能。
 - [x] 基于socket的TCP协议多线程网络通信支持。
-- [ ] ChatGPT接口适配。
+- [x] ChatGPT接口适配。
 - [ ] 网络内容更新支持。
 - [ ] 数据管理器，使管理游戏数据更加方便。
 
@@ -19,9 +19,14 @@
 ## :bookmark: 使用示范
 每个模块都有对应的使用示范，请在[Demo](./Demo)中查看。
 
+1. [高级角色类`advanced_character`](./Demo/demo_advanced_character.rpy)
+2. [RenCommunicator类`ren_communicator`](./Demo/demo_ren_communicator/)
+3. [RenChatGPT类`ren_chatgpt`](./Demo/demo_ren_chatgpt.rpy)
+
 ## :bar_chart: 已经实现的所有模块
 1. [高级角色类`advanced_character`](./RenPyUtil/advanced_character.rpy)
 2. [RenCommunicator类`ren_communicator`](./RenPyUtil/advanced_character.rpy)
+3. [RenChatGPT类`ren_chatgpt`](./RenPyUtil/ren_chatgpt.rpy)
 
 ## :book: 说明
 **该项目使用 MIT 协议开源，但若使用需要在程序中标明。**
