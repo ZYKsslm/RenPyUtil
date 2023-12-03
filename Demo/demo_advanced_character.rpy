@@ -5,10 +5,16 @@ init python:
     # 一个任务函数
     def love_event(speaker, name):
  
-        renpy.say(speaker, fr"{name}, I love you.")
+        speaker(f"{name}, I love you.")
         recieve = renpy.input("So, your answer is......")
  
         return recieve
+    
+
+    # 使用threading_task装饰的函数将在子线程中运行
+    @threading_task
+    def thread_event():
+        renpy.notify("Messages")
  
  
 # 使用default语句定义高级角色对象
@@ -22,6 +28,7 @@ label start:
     python:
         # 两种给高级角色增添属性的写法
         e.add_attr(love_point=50)
+        e.add_attr(thread=False)
         e.add_attr({"strength": 100, "health": 40})
  
     # 输出角色所有的自定义属性及其值
@@ -29,23 +36,35 @@ label start:
  
     python:
  
-        # 给该角色创建一个任务并绑定一个任务函数，当该角色对象的自定义属性love_point的值达到100，health值达到50时执行任务函数love
-        e.set_task(
-            task_name="love_event",
+        # 创建一个角色任务
+        love_task = CharacterTask(
             attr_pattern={
                 "love_point": 100,
                 "health": 50
             },
-            func_dict={
-                love_event: (e, "Tom")  #这里字典可以添加多个任务函数
+            single_use=True # single_use参数若为True则该任务为一次性任务
+        )
+        thread_task = CharacterTask(
+            attr_pattern={
+                "thread": True
             }
         )
+
+        # 绑定任务函数
+        love_task.add_func(love_event, e, name="ZYKsslm")
+        thread_task.add_func(thread_event)
+
+        # 绑定角色任务
+        e.add_task(love_task)
+        e.add_task(thread_task)
  
         e.love_point += 50
         e.health += 10
+
+        e.thread=True
  
         # 获取任务函数返回值
-        recieve = e.task_return_dict["love_event"][0]
+        recieve = love_task.func_return["love_event"]
      
     e "Your answer is '[recieve!q]'"
  
