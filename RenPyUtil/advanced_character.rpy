@@ -4,7 +4,18 @@
 # 声明  该源码使用 MIT 协议开源，但若使用需要在程序中标明作者信息
 
 
+# 对话组使用的transform
+transform off_stress:
+    linear 0.15 alpha 0.5
+
+
+transform stress:
+    linear 0.15 alpha 1.0
+
+
 init -1 python:
+
+    from functools import partial
 
 
     def threading_task(func):
@@ -22,13 +33,13 @@ init -1 python:
     class CharacterTask(object):
         """该类为角色任务类，用于高级角色对象绑定任务。"""        
 
-        def __init__(self, attr_pattern: dict = {}, single_use=False):
+        def __init__(self, attr_pattern: dict = {}, single_use=True):
             
             """初始化一个任务。
 
             Keyword Arguments:
                 attr_pattern -- 一个键为自定义属性的字典。当该角色对象的自定义属性变成字典中指定的值时执行绑定函数。 (default: {{}})
-                single_use -- 若为True，则该任务为一次性任务，即当执行过一次后就移除该任务。 (default: {False})
+                single_use -- 若为True，则该任务为一次性任务，即当执行过一次后就移除该任务。 (default: {True})
 
             Example:
                 ```python
@@ -85,23 +96,13 @@ init -1 python:
 
         errorType = {
             0: "错误地传入了一个ADVCharacter类，请传入一个AdvancedCharacter高级角色类！",
-            1: "传入对象类型异常，请传入一个AdvancedCharacter高级角色类！"
+            1: "传入对象类型异常，请传入一个AdvancedCharacter高级角色类！",
+            2: "该角色对象不在角色组内！"
         }
 
-        def __init__(self, obj):
+        def __init__(self, errorCode):
             super().__init__()
-            self.errorCode = None
-            self.check(obj)
-
-        def check(self, obj):
-
-            if isinstance(obj, AdvancedCharacter):
-                return
-            elif (not isinstance(obj, AdvancedCharacter)) and (isinstance(obj, ADVCharacter)):
-                self.errorCode = 0
-            else:
-                self.errorCode = 1
-            raise self
+            self.errorCode = errorCode
 
         def __str__(self):
             return CharacterError.errorType[self.errorCode]
@@ -120,6 +121,7 @@ init -1 python:
             """
 
             super().__init__(name, kind=kind, **properties)
+            self.properties = properties
             self.task_list = []
             self.customized_attr_dict = {}
 
@@ -201,11 +203,31 @@ init -1 python:
         def __init__(self, *characters: AdvancedCharacter):
             """初始化方法。"""
 
+            self.speaking_group = []
+
             self.character_group = list(characters)
 
             # 检查角色组中对象类型
             for obj in self.character_group:
-                CharacterError(obj)
+                if isinstance(obj, AdvancedCharacter):
+                    pass
+                elif (not isinstance(obj, AdvancedCharacter)) and (isinstance(obj, ADVCharacter)):
+                    raise CharacterError(0)
+                else:
+                    raise CharacterError(1)
+
+        def add_characters(self, *characters: AdvancedCharacter):
+            """调用该方法，向角色组中添加一个或多个角色对象。"""
+
+            for character in characters:
+                if isinstance(character, AdvancedCharacter):
+                    pass
+                elif (not isinstance(character, AdvancedCharacter)) and (isinstance(character, ADVCharacter)):
+                    raise CharacterError(0)
+                else:
+                    raise CharacterError(1)
+
+                self.character_group.append(character)          
 
         def get_random_character(self):
             """调用该方法，返回角色组中随机一个角色对象。"""
@@ -258,3 +280,28 @@ init -1 python:
 
             for character in self.character_group:
                 character.add_task(task)
+
+        def stress(self, name: str, event, **kwargs):
+            """该方法用于定义角色对象时作为回调函数使用。该方法可创建一个对话组，对话组中一个角色说话时，其他角色将变暗。
+
+            Arguments:
+                name -- 角色对象的字符串形式。
+                event -- 自动传入的事件。
+            """            
+
+            if not event == "begin":
+                return
+
+            if name not in self.speaking_group:
+                self.speaking_group.append(name)
+            
+            for speaker in self.speaking_group:
+                current_name = speaker
+                speaker = eval(speaker)
+                image = speaker.properties["image"]
+                
+                if current_name == name:
+                    renpy.show(image, at_list=[stress])
+                    continue
+                
+                renpy.show(image, at_list=[off_stress])
