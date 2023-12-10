@@ -25,13 +25,13 @@
 每个模块都有对应的使用示范，请在[Demo](./Demo)中查看。
 
 1. [`advanced_character`](./Demo/demo_advanced_character)
-  - [角色任务](./Demo/demo_advanced_character/character_task.rpy)
-  - [对话组](./Demo/demo_advanced_character/speaking_group.rpy)
+    - [角色任务](./Demo/demo_advanced_character/character_task.rpy)
+    - [对话组](./Demo/demo_advanced_character/speaking_group.rpy)
 2. [`ren_communicator`](./Demo/demo_ren_communicator/)
-  - [客户端通信](./Demo/demo_ren_communicator/client.rpyy)
-  - [服务端通信](./Demo/demo_ren_communicator/server.rpy)
+    - [客户端通信](./Demo/demo_ren_communicator/client.rpyy)
+    - [服务端通信](./Demo/demo_ren_communicator/server.rpy)
 3. [`ren_chatgpt`](./Demo/demo_ren_chatgpt.rpy)
-   - [与ChatGPT对话](./Demo/demo_ren_chatgpt.rpy)
+    - [与ChatGPT对话](./Demo/demo_ren_chatgpt.rpy)
 
 ## :bar_chart: Module List 已经实现的所有模块
 1. [`advanced_character`](./RenPyUtil/advanced_character.rpy)
