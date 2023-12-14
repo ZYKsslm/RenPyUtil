@@ -34,9 +34,9 @@
     - [与ChatGPT对话](./Demo/demo_ren_chatgpt.rpy)
 
 ## :bar_chart: Module List 已经实现的所有模块
-1. [`advanced_character`](./RenPyUtil/advanced_character.rpy)
-2. [`ren_communicator`](./RenPyUtil/advanced_character.rpy)
-3. [`ren_chatgpt`](./RenPyUtil/ren_chatgpt.rpy)
+1. [`advanced_character`](./RenPyUtil/advanced_character_ren.py)
+2. [`ren_communicator`](./RenPyUtil/advanced_character_ren.py)
+3. [`ren_chatgpt`](./RenPyUtil/ren_chatgpt_ren.py)
 
 ## :book: 说明
 **该项目使用 MIT 协议开源，但若使用需要在程序中标明。**
