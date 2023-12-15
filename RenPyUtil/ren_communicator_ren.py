@@ -44,7 +44,7 @@ class Message(object):
             with open(self.message, "rb") as f:
                 self.data = f.read()
         
-        self.info =pickle.dumps(
+        self.info = pickle.dumps(
             {
                 "message": self.message,
                 "data": self.data,
@@ -52,7 +52,6 @@ class Message(object):
                 "format": self.format
             }
         )
-
 
 
 class Prompt(object):
@@ -65,6 +64,17 @@ class Prompt(object):
         
         # 转换为一个集合
         self.prompts = set(prompts)
+        
+        
+class _HistoryEntry(object):
+    def __init__(self, kind, who, what, who_args, what_args, window_args, show_args):
+        self.kind = kind
+        self.who = who
+        self.what = what
+        self.what_args = what_args
+        self.who_args = who_args
+        self.window_args = window_args
+        self.show_args = show_args
 
 
 class RenServer(object):
@@ -93,13 +103,15 @@ class RenServer(object):
     RECEIVE_EVENT = "RECEIVE"
     
 
-    def __init__(self, max_conn=5, max_data_size=1024, ip="0.0.0.0", port=8888):
+    def __init__(self, max_conn=5, max_data_size=307200, ip="0.0.0.0", port=8888, history=False, character=None):
         """初始化方法。
 
         Keyword Arguments:
             max_conn -- 最大连接数。 (default: {5})
-            max_data_size -- 接收数据的最大大小。 (default: {1024})
+            max_data_size -- 接收数据的最大大小。默认为300M。 (default: {307200})
             port -- 端口号。 (default: {None})
+            history -- 接收到的文字消息是否显示在历史记录中。 (default: {False})
+            character -- 若`history`参数为True，则该参数应为一个角色对象，用于保存在历史记录中。 (default: {None})
         """            
 
         self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -107,6 +119,8 @@ class RenServer(object):
         self.ip = ip
         self.max_data_size = max_data_size
         self.max_conn = max_conn
+        self.history = history
+        self.character = character
         
         try:
             self.socket.bind((self.ip, self.port))
@@ -296,7 +310,7 @@ class RenServer(object):
 
     def _receive(self, client_socket: socket.socket, max_data_size):
         """该方法用于接收线程使用，处理接收事件，用于类内部使用，不应被调用。"""
-        
+            
         while True:
             self.received = False
             try:
@@ -335,6 +349,19 @@ class RenServer(object):
             if self.receive_event:
                 func, args, kwargs = self.receive_event
                 renpy.invoke_in_thread(func, data, client_socket, *args, **kwargs)
+               
+            if self.history and info["type"] == Message.STRING: 
+                history_obj = _HistoryEntry(
+                    kind="adv",
+                    who=self.character.name,
+                    what=info["message"],
+                    who_args=self.character.who_args,
+                    what_args=self.character.what_args,
+                    window_args=self.character.window_args,
+                    show_args=self.character.show_args
+                )
+                _history_list.append(history_obj)
+            
 
     def send(self, client_socket: socket.socket, msg: Message):
         """调用该方法，向指定客户端发送消息。该方法为阻塞方法。
@@ -407,7 +434,7 @@ class RenClient(object):
     RECEIVE_EVENT = "RECEIVE"
 
     
-    def __init__(self, target_ip, target_port, max_data_size=1024):
+    def __init__(self, target_ip, target_port, max_data_size=307200, history=False, character=None):
         """初始化方法。
 
         Arguments:
@@ -415,13 +442,17 @@ class RenClient(object):
             target_port -- 服务端端口。
 
         Keyword Arguments:
-            max_data_size -- 接收数据的最大大小。 (default: {1024})
+            max_data_size -- 接收数据的最大大小。默认为300M。 (default: {307200})
+            history -- 接收到的文字消息是否显示在历史记录中。 (default: {False})
+            character -- 若`history`参数为True，则该参数应为一个角色对象，用于保存在历史记录中。 (default: {None})
         """                       
 
         self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.target_ip = target_ip
         self.target_port = target_port
         self.max_data_size = max_data_size
+        self.history = history
+        self.character = character
 
         self.is_conn = False
         self.has_communicated = False
@@ -612,7 +643,19 @@ class RenClient(object):
 
             if self.receive_event:
                 func, args, kwargs = self.receive_event
-                renpy.invoke_in_thread(func, data, *args, **kwargs)                
+                renpy.invoke_in_thread(func, data, *args, **kwargs)     
+                
+            if self.history and info["type"] == Message.STRING: 
+                history_obj = _HistoryEntry(
+                    kind="adv",
+                    who=self.character.name,
+                    what=info["message"],
+                    who_args=self.character.who_args,
+                    what_args=self.character.what_args,
+                    window_args=self.character.window_args,
+                    show_args=self.character.show_args
+                )
+                _history_list.append(history_obj)        
 
     def send(self, msg: Message):
         """调用该方法，向指定客户端发送消息。该方法为阻塞方法。

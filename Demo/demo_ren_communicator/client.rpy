@@ -10,7 +10,7 @@ init python:
  
  
 define e = Character("艾琳")
-define client = RenClient("192.168.2.23", 8888)
+define client = RenClient("192.168.2.169", 8888, history=True, character=e)
  
 screen leave():
     frame:
@@ -20,14 +20,22 @@ screen leave():
  
 # 确保回到标题前关闭连接
 label before_main_menu:
-    if client.has_communicated:
-        $ client.close()
+    python:
+        try:
+            if server.has_communicated:
+                server.close()
+        except:
+            pass
     return
  
 # 确保退出前关闭连接
 label quit:
-    if client.has_communicated:
-        $ client.close()
+    python:
+        try:
+            if server.has_communicated:
+                server.close()
+        except:
+            pass
     return
  
  
@@ -54,5 +62,5 @@ label chat:
             client.listen_event(RenClient.CONNECT_EVENT, "正在连接中......")
             while True:
                 content = renpy.input("说点什么呢？")
-                if client.send(content.encode("utf-8")):
+                if client.send(Message(content)):
                     renpy.notify("消息发送成功！")

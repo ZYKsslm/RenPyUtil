@@ -10,7 +10,7 @@ init python:
  
  
 define e = Character("艾琳")
-define server = RenServer()
+define server = RenServer(history=True, character=e)
  
 screen leave():
     frame:
@@ -20,14 +20,22 @@ screen leave():
  
 # 确保回到标题前关闭连接
 label before_main_menu:
-    if server.has_communicated:
-        $ server.close()
+    python:
+        try:
+            if server.has_communicated:
+                server.close()
+        except:
+            pass
     return
  
 # 确保退出前关闭连接
 label quit:
-    if server.has_communicated:
-        $ server.close()
+    python:
+        try:
+            if server.has_communicated:
+                server.close()
+        except:
+            pass
     return
  
  
@@ -55,5 +63,5 @@ label chat:
             while True:
                 content = renpy.input("说点什么呢？")
                 for socket in server.client_socket_list:
-                    if server.send(socket, content.encode("utf-8")):
+                    if server.send(socket, Message(content)):
                         renpy.notify("消息发送成功！")
