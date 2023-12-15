@@ -1,54 +1,66 @@
 # 游戏的脚本可置于此文件中。
  
 # 先定义一个角色组
-default group = CharacterGroup()
+default speanking_group = CharacterGroup()
+
 default a = AdvancedCharacter(
     "Alice", 
-    what_color="#FF8C00", 
-    who_color="#d982e0", 
     image="alice",  # 绑定相应角色的立绘图像标签
-    callback=partial(group.stress, "a") # 使用partial函数传入自带参数的回调函数。第一个参数为group.stress函数，第二个为当前角色对象的变量名
+    callback=partial(speanking_group.stress, "a") # 使用partial函数传入自带参数的回调函数。第一个参数为对话组的stress方法，第二个为当前角色对象的变量名
+)
+
+default m = AdvancedCharacter(
+    "Mary",
+    image="mary",
+    callback=partial(speanking_group.stress, "m")
 )
 
 default s = AdvancedCharacter(
-    "S", 
-    what_color="#FF8C00", 
-    who_color="#d982e0", 
-    image="s", 
-    callback=partial(group.stress, "s")
+    "Sylvie",
+    image="sylvie",
+    callback=partial(speanking_group.stress, "s")
 )
 
-$ group.add_characters(a, s)    # 将角色加入角色组中
 
+# 定义角色不同表情的立绘
 image alice blush = "images/Alice_VNSpriteSet/Alice_Blush.png"
 image alice default = "images/Alice_VNSpriteSet/Alice_Default.png"
 image alice worried = "images/Alice_VNSpriteSet/Alice_Worried.png"
+image alice doubt = "images/Alice_VNSpriteSet/Alice_Doubt.png"
 
-image s de = "images/Alice_VNSpriteSet/Alice_Teasing.png"
-image s em = "images/Alice_VNSpriteSet/Alice_Embarrassed.png"
+image mary angry = "images/Sprite - Female Pink Hair Starter Pack/Sprite F PinkH Professional Angry01.png"
+image mary smile = "images/Sprite - Female Pink Hair Starter Pack/Sprite F PinkH Professional Smile01.png"
+
+image sylvie smile = "images/Sprite Starter Pack - Female White Hair/FWH smile01.png"
+image sylvie angry = "images/Sprite Starter Pack - Female White Hair/FWH angry01.png"
 
 # 游戏在此开始。
  
 label start:
  
     show alice blush:
-        zoom 0.6
+        zoom 0.65
         center
-    a "你好！"
-
-    a default "我是Alice"
-
-    a @ worried "哎呀！ " with hpunch
-
-    a "说什么好呢？"
     
-    show s de:
-        zoom 0.6
+    a "a"
+    a @ default "a default"
+
+    show mary angry:
+        zoom 0.7
         left
-    s "嗨嗨！"
 
-    s em "你好"
+    m "m"
+    m @ smile "m smile"
 
-    a "你好......"
+    show sylvie smile:
+        zoom 0.65
+        right
+
+    s "s"
+    s @ angry "s angry"
+
+    a "return to a"
+
+    m "return to m"
  
     return
