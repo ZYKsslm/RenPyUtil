@@ -11,7 +11,6 @@ init -1 python:
 
 from datetime import datetime
 import socket
-import re
 import pickle
 import os
 
@@ -40,7 +39,7 @@ class Message(object):
             if not os.path.exists(self.message):
                 raise Exception(f"找不到该文件：{self.message}")
             
-            self.format = re.findall(r'\..*', self.message)[0]
+            self.format = os.path.splitext(self.message)[1]
             
             with open(self.message, "rb") as f:
                 self.data = f.read()
