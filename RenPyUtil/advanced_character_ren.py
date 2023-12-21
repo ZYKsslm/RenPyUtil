@@ -135,8 +135,10 @@ class AdvancedCharacter(ADVCharacter):
             attr_dict -- 一个键为属性名，值为属性值的字典。若该参数不填，则传入参数作为属性名，参数值作为属性值。 (default: {None})
 
         Example:
+            ```python
             character.add_attr(strength=100, health=100)
             character.add_attr(attr_dict={strength: 10, health: 5})
+            ```
         """
 
         attr = attr_dict if attr_dict else attrs
@@ -254,8 +256,10 @@ class CharacterGroup(object):
             attr_dict -- 一个键为属性名，值为属性值的字典。若该参数不填，则传入参数作为属性名，参数值作为属性值。 (default: {None})
 
         Example:
+            ```python
             character_group.add_group_attr(strength=100, health=100)
             character_group.add_group_attr(attr_dict={strength: 10, health: 5})
+            ```
         """
 
         attr = attr_dict if attr_dict else attrs
