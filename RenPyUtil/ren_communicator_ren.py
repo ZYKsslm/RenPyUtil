@@ -16,7 +16,7 @@ import os
 
 
 class Message(object):
-    """消息类"""
+    """消息类，用于定义通信中收发的消息对象。"""
 
     STRING = "string"
     FILE = "file"
@@ -55,7 +55,7 @@ class Message(object):
 
 
 class Prompt(object):
-    """命令类"""        
+    """命令类。"""        
 
     def __init__(self, *prompts):
         prompts = list(prompts)
@@ -78,12 +78,11 @@ class _HistoryEntry(object):
 
 
 class RenServer(object):
-    """该类为一个服务端类。基于socket进行多线程通信。
+    """该类为一个服务端类。基于socket进行多线程通信。定义该对象时请使用`define`语句。
 
-    在于子线程中运行的方法中使用renpy某些更新屏幕的函数（如`renpy.say()`、`renpy.call_screen()`等），可能引发异常。
+    在于子线程中运行的方法中使用renpy某些更新屏幕的函数（如`renpy.say()`、`renpy.call_screen()`等），可能会引发异常。
 
     在子线程中运行的方法有:
-    
         1. 使用`set_prompt`设定的命令方法。
         2. 使用`set_receive_event` `set_conn_event` `set_error_event`设定的事件方法。
         3. 所有进行通信的方法。
@@ -148,9 +147,6 @@ class RenServer(object):
         Arguments:
             prompt -- 命令语句。可为一个字符串或一个列表或一个Prompt对象，若为列表，则列表中所有命令都可触发命令。
             func -- 一个函数。
-
-        Keyword Arguments:
-            encode -- 是否编码。 (default: {True})
         """ 
 
         if not isinstance(prompt, Prompt):
@@ -393,28 +389,32 @@ class RenServer(object):
 
     def __enter__(self):
         # 进入with语句后执行的方法
-        # 防止用户回滚游戏重复启动线程
+        # 禁止了一些功能防止造成与线程有关的异常
+        # 禁止回滚
+        # 禁止自动存档
         # 禁止用户存档
         # 禁止用户跳过
         config.rollback_enabled = False
         config.allow_skipping = False
+        config.has_autosave = False
         renpy.block_rollback()
+        
         return self
 
     def __exit__(self, exc_type, exc_val, exc_tb):
-        # 当退出with语句后允许回滚
+        # 当退出with语句后恢复禁用的功能
         config.rollback_enabled = True
-        renpy.block_rollback()
         config.allow_skipping = True
+        config.has_autosave = True
+        renpy.block_rollback()
 
 
 class RenClient(object):
-    """该类为一个客户端类。
+    """该类为一个客户端类。定义该对象时请使用`define`语句。
     
-    在在子线程中运行的方法中使用renpy更新屏幕的函数（如`renpy.say()` `renpy.call_screen()`等），可能引发异常。
+    在于子线程中运行的方法中使用renpy更新屏幕的函数（如`renpy.say()` `renpy.call_screen()`等），可能会引发异常。
 
     在子线程中运行的方法有：
-    
         1. 使用`set_prompt`设定的命令方法。
         2. 使用`set_receive_event` `set_conn_event` `set_error_event`设定的事件方法。
         3. 所有进行通信的方法。
@@ -467,7 +467,7 @@ class RenClient(object):
 
         self.error_log = {}
 
-    def set_prompt(self, prompt: str | set, func, encode=True, *args, **kwargs):
+    def set_prompt(self, prompt: str | set, func, *args, **kwargs):
         """调用该方法，创建一个命令，当服务端发送该命令后执行绑定的函数。命令将作为第一个参数传入指定函数中。
 
         不定关键字参数为函数参数。
@@ -475,13 +475,10 @@ class RenClient(object):
         Arguments:
             prompt -- 命令语句。可为一个字符串或一个集合，若为集合，则集合中所有语句都可触发命令。
             func -- 一个函数。
-
-        Keyword Arguments:
-            encode -- 是否自动编码。 (default: {True})
         """ 
 
         if not isinstance(prompt, Prompt):
-            prompt = Prompt(encode, prompt)
+            prompt = Prompt(prompt)
         
         self.prompt_dict[prompt] = [func, args, kwargs]
 
@@ -683,10 +680,13 @@ class RenClient(object):
     def __enter__(self):
         config.rollback_enabled = False
         config.allow_skipping = False
+        config.has_autosave = False
         renpy.block_rollback()
+        
         return self
 
     def __exit__(self, exc_type, exc_val, exc_tb):
         config.rollback_enabled = True
         config.allow_skipping = True
+        config.has_autosave = True
         renpy.block_rollback()
