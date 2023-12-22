@@ -78,9 +78,9 @@ class _HistoryEntry(object):
 
 
 class RenServer(object):
-    """该类为一个服务端类。基于socket进行多线程通信。定义该对象时请使用`define`语句。
+    """该类为一个服务端类。基于socket进行多线程通信。
 
-    在于子线程中运行的方法中使用renpy某些更新屏幕的函数（如`renpy.say()`、`renpy.call_screen()`等），可能会引发异常。
+    在于子线程中运行的方法中使用renpy某些更新屏幕的函数（如`renpy.say()`等），可能会引发异常。
 
     在子线程中运行的方法有:
         1. 使用`set_prompt`设定的命令方法。
@@ -113,7 +113,6 @@ class RenServer(object):
             character -- 若`history`参数为True，则该参数应为一个角色对象，用于保存在历史记录中。 (default: {None})
         """            
 
-        self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.port = port
         self.ip = ip
         self.max_data_size = max_data_size
@@ -121,10 +120,7 @@ class RenServer(object):
         self.history = history
         self.character = character
         
-        try:
-            self.socket.bind((self.ip, self.port))
-        except socket.error:
-            raise Exception("监听端口失败，可能打开了多个程序。")
+        self.bind()
 
         self.client_socket_list = []
         self.has_communicated = False
@@ -266,11 +262,23 @@ class RenServer(object):
 
         else:
             return
-
+    
+    def bind(self):
+        self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        try:
+            self.socket.bind((self.ip, self.port))
+        except socket.error:
+            raise Exception("监听端口失败，可能打开了多个程序。")
+    
     def run(self):
         """调用该方法，开始监听端口，创建连接线程。"""            
         
-        self.socket.listen(self.max_conn) 
+        try:
+            self.socket.listen(self.max_conn)
+        except socket.error:
+            self.bind()
+            self.socket.listen(self.max_conn)
+
         self.has_communicated = True
         renpy.invoke_in_thread(self._accept)
 
@@ -297,12 +305,12 @@ class RenServer(object):
                 self.error_log[datetime.now().strftime(r"%Y-%m-%d %H:%M:%S")] = err
                 return
 
+            self.client_socket_list.append(client_socket)
+            renpy.invoke_in_thread(self._receive, client_socket, self.max_data_size)
+
             if self.conn_event:
                 func, args, kwargs = self.conn_event
                 renpy.invoke_in_thread(func, client_socket, *args, **kwargs)
-
-            self.client_socket_list.append(client_socket)
-            renpy.invoke_in_thread(self._receive, client_socket, self.max_data_size)
 
     def _receive(self, client_socket: socket.socket, max_data_size):
         """该方法用于接收线程使用，处理接收事件，用于类内部使用，不应被调用。"""
@@ -410,9 +418,9 @@ class RenServer(object):
 
 
 class RenClient(object):
-    """该类为一个客户端类。定义该对象时请使用`define`语句。
+    """该类为一个客户端类。
     
-    在于子线程中运行的方法中使用renpy更新屏幕的函数（如`renpy.say()` `renpy.call_screen()`等），可能会引发异常。
+    在于子线程中运行的方法中使用renpy更新屏幕的函数（如`renpy.say()`等），可能会引发异常。
 
     在子线程中运行的方法有：
         1. 使用`set_prompt`设定的命令方法。
