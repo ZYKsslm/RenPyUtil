@@ -209,8 +209,11 @@ class RenServer(object):
 
         if self.client_socket_list:
             try:
-                for s in self.client_socket_list:
-                    s.close()    
+                for i in len(self.client_socket_list) - 1:
+                    socket = self.client_socket_list[i]
+                    socket.close()
+                    self.client_socket_list.remove(socket)
+                     
             except socket.error:
                 pass
 
@@ -223,9 +226,13 @@ class RenServer(object):
 
         if client_socket:
             client_socket.close()
+            self.client_socket_list.remove(client_socket)
         else:
             try:
-                self.client_socket_list[len(self.client_socket_list)-1].close()    
+                index = len(self.client_socket_list)-1
+                socket = self.client_socket_list[index]
+                socket.close()
+                self.client_socket_list.remove(socket) 
             except IndexError or socket.err:
                 pass
 
