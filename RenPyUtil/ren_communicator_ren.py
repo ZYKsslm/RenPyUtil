@@ -208,14 +208,9 @@ class RenServer(object):
         """调用该方法，关闭所有连接。"""   
 
         if self.client_socket_list:
-            try:
-                for i in len(self.client_socket_list) - 1:
-                    socket = self.client_socket_list[i]
-                    socket.close()
-                    self.client_socket_list.remove(socket)
-                     
-            except socket.error:
-                pass
+            for i in len(self.client_socket_list) - 1:
+                socket = self.client_socket_list[i]
+                self.close_a_conn(socket)
 
     def close_a_conn(self, client_socket: socket.socket=None):
         """调用该方法，关闭一个指定socket连接。
@@ -224,17 +219,17 @@ class RenServer(object):
             socket -- 客户端socket。若该参数不填，则关闭最新的连接。 (default: {None})
         """    
 
-        if client_socket:
-            client_socket.close()
-            self.client_socket_list.remove(client_socket)
-        else:
-            try:
+        try:
+            if client_socket:
+                client_socket.close()
+                self.client_socket_list.remove(client_socket)
+            else:
                 index = len(self.client_socket_list)-1
                 socket = self.client_socket_list[index]
                 socket.close()
                 self.client_socket_list.remove(socket) 
-            except IndexError or socket.err:
-                pass
+        except:
+            pass
 
     def listen_event(self, event, tip="", prompt: Prompt = None):
         """调用该方法阻塞式监听一个事件，监听到事件后取消阻塞。
