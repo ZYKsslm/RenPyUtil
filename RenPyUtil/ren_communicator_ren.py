@@ -104,12 +104,12 @@ class RenServer(object):
     RECEIVE_EVENT = "RECEIVE"
     
 
-    def __init__(self, max_conn=5, max_data_size=307200, ip="0.0.0.0", port=8888, history=False, character=None):
+    def __init__(self, max_conn=5, max_data_size=104857600, ip="0.0.0.0", port=8888, history=False, character=None):
         """初始化方法。
 
         Keyword Arguments:
             max_conn -- 最大连接数。 (default: {5})
-            max_data_size -- 接收数据的最大大小。默认为300M。 (default: {307200})
+            max_data_size -- 接收数据的最大大小。默认为100M。 (default: {104857600})
             port -- 端口号。 (default: {None})
             history -- 接收到的文字消息是否显示在历史记录中。 (default: {False})
             character -- 若`history`参数为True，则该参数应为一个角色对象，用于保存在历史记录中。 (default: {None})
@@ -442,7 +442,7 @@ class RenClient(object):
     RECEIVE_EVENT = "RECEIVE"
 
     
-    def __init__(self, target_ip, target_port, max_data_size=307200, history=False, character=None):
+    def __init__(self, target_ip, target_port, max_data_size=104857600, history=False, character=None):
         """初始化方法。
 
         Arguments:
@@ -450,7 +450,7 @@ class RenClient(object):
             target_port -- 服务端端口。
 
         Keyword Arguments:
-            max_data_size -- 接收数据的最大大小。默认为300M。 (default: {307200})
+            max_data_size -- 接收数据的最大大小。默认为100M。 (default: {104857600})
             history -- 接收到的文字消息是否显示在历史记录中。 (default: {False})
             character -- 若`history`参数为True，则该参数应为一个角色对象，用于保存在历史记录中。 (default: {None})
         """                       
