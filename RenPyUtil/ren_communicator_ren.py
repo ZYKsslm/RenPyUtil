@@ -338,6 +338,7 @@ class RenServer(object):
                 self.received = False
                 client_socket.close()
                 self.client_socket_list.remove(client_socket)
+                return
             
             info = pickle.loads(data)
             data = info["data"]
@@ -645,6 +646,7 @@ class RenClient(object):
             if not data:
                 self.received = False
                 self.socket.close()
+                return
             
             info = pickle.loads(data)
             data = info["data"]
