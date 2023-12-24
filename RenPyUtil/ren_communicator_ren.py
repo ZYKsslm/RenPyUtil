@@ -265,10 +265,8 @@ class RenServer(object):
     
     def bind(self):
         self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        try:
-            self.socket.bind((self.ip, self.port))
-        except socket.error:
-            raise Exception("监听端口失败，可能打开了多个程序。")
+        self.socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, True)
+        self.socket.bind((self.ip, self.port))
     
     def run(self):
         """调用该方法，开始监听端口，创建连接线程。"""            
@@ -352,7 +350,7 @@ class RenServer(object):
 
             if self.receive_event:
                 func, args, kwargs = self.receive_event
-                renpy.invoke_in_thread(func, data, client_socket, *args, **kwargs)
+                renpy.invoke_in_thread(func, info, client_socket, *args, **kwargs)
                
             if self.history and info["type"] == Message.STRING: 
                 history_obj = _HistoryEntry(
@@ -455,12 +453,13 @@ class RenClient(object):
             character -- 若`history`参数为True，则该参数应为一个角色对象，用于保存在历史记录中。 (default: {None})
         """                       
 
-        self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.target_ip = target_ip
         self.target_port = target_port
         self.max_data_size = max_data_size
         self.history = history
         self.character = character
+        
+        self.bind()
 
         self.is_conn = False
         self.has_communicated = False
@@ -571,6 +570,9 @@ class RenClient(object):
 
         else:
             return
+        
+    def bind(self):
+        self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
     def run(self):
         """调用该方法，开始尝试连接服务端。"""            
@@ -648,7 +650,7 @@ class RenClient(object):
 
             if self.receive_event:
                 func, args, kwargs = self.receive_event
-                renpy.invoke_in_thread(func, data, *args, **kwargs)     
+                renpy.invoke_in_thread(func, info, *args, **kwargs)     
                 
             if self.history and info["type"] == Message.STRING: 
                 history_obj = _HistoryEntry(
