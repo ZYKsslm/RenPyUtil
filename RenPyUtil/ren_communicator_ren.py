@@ -208,7 +208,7 @@ class RenServer(object):
         """调用该方法，关闭所有连接。"""   
 
         if self.client_socket_list:
-            for i in len(self.client_socket_list) - 1:
+            for i in range(len(self.client_socket_list)):
                 socket = self.client_socket_list[i]
                 self.close_a_conn(socket)
 
