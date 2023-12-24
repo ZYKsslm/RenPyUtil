@@ -20,13 +20,14 @@ class Message(object):
 
     STRING = "string"
     FILE = "file"
+    IMAGE = "image"
 
     def __init__(self, message: str, _type="string"):
         """初始化方法。
 
         Arguments:
             message -- 可能为一个纯字符串的消息，或一个文件的路径。
-            _type -- 文件类型。应为`Message.STRING` `Message.FILE`其中一项。
+            _type -- 文件类型。应为`Message.STRING` `Message.IMAGE` `Message.FILE`其中一项。
         """        
         
         self.type = _type
