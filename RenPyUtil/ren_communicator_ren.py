@@ -86,21 +86,21 @@ class RenServer(object):
 
     在子线程中运行的方法有:
         1. 使用`set_prompt`设定的命令方法。
-        2. 使用`set_receive_event` `set_conn_event` `set_error_event`设定的事件方法。
+        2. 使用`set_receive_event` `set_conn_event` `set_diconn_event`设定的事件方法。
         3. 所有进行通信的方法。
     """
 
     # 支持监听的事件
     EVENT = [
         "PROMPT",   # 命令事件
-        "ERROR",    # 异常事件
+        "DISCONN",    # 断连事件
         "CONNECT",  # 连接事件
         "RECEIVE",  # 接收事件
     ]
 
-    PROMPT_EVENT = "PROMPT",
-    ERROR_EVENT = "ERROR",
-    CONNECT_EVENT = "CONNECT",
+    PROMPT_EVENT = "PROMPT"
+    DISCONN_EVENT = "DISCONN"
+    CONNECT_EVENT = "CONNECT"
     RECEIVE_EVENT = "RECEIVE"
     
 
@@ -131,11 +131,11 @@ class RenServer(object):
         self.reply = None
 
         self.prompt_dict = {}
-        self.error_event = []
+        self.disconn_event = []
         self.receive_event = []
         self.conn_event = []
 
-        self.error_log = {}
+        self.log = {}
 
     def set_prompt(self, prompt: str | list | Prompt, func, *args, **kwargs):
         """调用该方法，创建一个命令，当接收到该命令后执行绑定的函数。命令将作为第一个参数，客户端socket将作为第二个参数传入指定函数中。
@@ -152,22 +152,20 @@ class RenServer(object):
         
         self.prompt_dict[prompt] = [func, args, kwargs]
 
-    def set_reply(self, reply: str | Message | bytes):
+    def set_reply(self, reply: str | Message):
         """调用该方法，指定接收到消息后自动回复的消息。
 
         Arguments:
             reply -- 要回复的消息。
         """       
         
-        if isinstance(reply, Message):
-            reply = reply.info
-        elif isinstance(reply, str):
-            reply = reply.encode("utf-8")
+        if not isinstance(reply, Message):
+            reply = Message(reply)
 
         self.reply = reply
 
-    def set_error_event(self, func, *args, **kwargs):
-        """调用该方法，指定当通信出现异常时的行为。异常信息将作为第一个参数传入指定函数中。
+    def set_diconn_event(self, func, *args, **kwargs):
+        """调用该方法，指定当断开连接时的行为。断连的socket将作为第一个参数传入指定函数中。
 
         不定参数为绑定的函数参数。
 
@@ -175,7 +173,7 @@ class RenServer(object):
             func 一个函数
         """            
 
-        self.error_event = [func, args, kwargs]
+        self.disconn_event = [func, args, kwargs]
 
     def set_receive_event(self, func, *args, **kwargs):
         """调用该方法，指定当接受到消息时的行为。接收到的数据将作为第一个参数，客户端socket将作为第二个参数传入指定函数中。
@@ -247,9 +245,9 @@ class RenServer(object):
                 renpy.notify(tip)
                 renpy.pause()
 
-        elif event == RenServer.ERROR_EVENT:
-            event_counter = len(self.error_log)
-            while len(self.error_log) <= event_counter:
+        elif event == RenServer.DISCONN_EVENT:
+            event_counter = len(self.log)
+            while len(self.log) <= event_counter:
                 renpy.notify(tip)
                 renpy.pause()
 
@@ -288,25 +286,21 @@ class RenServer(object):
         """调用该方法将重新开始通信。
 
         Keyword Arguments:
-            log_clear -- 若为True，将清除错误日志。 (default: {False})
+            log_clear -- 若为True，将清除日志。 (default: {False})
         """            
 
         self.close()
         self.close_all_conn()
         if log_clear:
-            self.error_log.clear()
+            self.log.clear()
         self.run()
 
     def _accept(self):
         """该方法用于创建连接线程，用于类内部使用，不应被调用。"""            
 
         while True:
-            try:
-                client_socket, address = self.socket.accept()
-            except Exception as err:
-                self.error_log[datetime.now().strftime(r"%Y-%m-%d %H:%M:%S")] = err
-                return
-
+            client_socket = self.socket.accept()[0]
+    
             self.client_socket_list.append(client_socket)
             renpy.invoke_in_thread(self._receive, client_socket, self.max_data_size)
 
@@ -322,22 +316,15 @@ class RenServer(object):
             try:
                 data = client_socket.recv(max_data_size)
                 self.received = True
-            except Exception as err:
-                self.received = False
-                self.error_log[datetime.now().strftime(r"%Y-%m-%d %H:%M:%S")] = err
+            except socket.error as err:
+                self.log[datetime.now().strftime(r"%Y-%m-%d %H:%M:%S")] = err
                 client_socket.close()
                 self.client_socket_list.remove(client_socket)
 
-                if self.error_event:
-                    func, args, kwargs = self.error_event
-                    renpy.invoke_in_thread(func, err, *args, **kwargs)
+                if self.disconn_event:
+                    func, args, kwargs = self.disconn_event
+                    renpy.invoke_in_thread(func, client_socket, *args, **kwargs)
 
-                return
-            
-            if not data:
-                self.received = False
-                client_socket.close()
-                self.client_socket_list.remove(client_socket)
                 return
             
             info = pickle.loads(data)
@@ -350,13 +337,7 @@ class RenServer(object):
                     renpy.invoke_in_thread(func, data, client_socket, *args, **kwargs)
 
             if self.reply:
-                try:
-                    client_socket.send(self.reply)
-                except Exception as err:
-                    self.error_log[datetime.now().strftime(r"%Y-%m-%d %H:%M:%S")] = err
-                    client_socket.close()
-                    self.client_socket_list.remove(client_socket)
-                    return
+                self.send(client_socket, self.reply)
 
             if self.receive_event:
                 func, args, kwargs = self.receive_event
@@ -373,7 +354,6 @@ class RenServer(object):
                     show_args=self.character.show_args
                 )
                 _history_list.append(history_obj)
-            
 
     def send(self, client_socket: socket.socket, msg: Message):
         """调用该方法，向指定客户端发送消息。该方法为阻塞方法。
@@ -390,14 +370,18 @@ class RenServer(object):
         
         try:
             client_socket.send(msg.info)
-        except Exception as err:
-            self.error_log[datetime.now().strftime(r"%Y-%m-%d %H:%M:%S")] = err
-            client_socket.close()
-            self.client_socket_list.remove(client_socket)
+        except socket.error as err:
+            self.log[datetime.now().strftime(r"%Y-%m-%d %H:%M:%S")] = err
+            
+            try:
+                client_socket.close()
+                self.client_socket_list.remove(client_socket)
+            except:
+                pass
 
-            if self.error_event:
-                func, args, kwargs = self.error_event
-                renpy.invoke_in_thread(func, err, *args, **kwargs)
+            if self.disconn_event:
+                func, args, kwargs = self.disconn_event
+                renpy.invoke_in_thread(func, client_socket, *args, **kwargs)
 
             return False
         else:
@@ -432,21 +416,21 @@ class RenClient(object):
 
     在子线程中运行的方法有：
         1. 使用`set_prompt`设定的命令方法。
-        2. 使用`set_receive_event` `set_conn_event` `set_error_event`设定的事件方法。
+        2. 使用`set_receive_event` `set_conn_event` `set_disconn_event`设定的事件方法。
         3. 所有进行通信的方法。
     """
 
     # 支持监听的事件
     EVENT = [
         "PROMPT",   # 命令事件
-        "ERROR",    # 异常事件
+        "DISCONN",    # 断连事件
         "CONNECT",  # 连接事件
         "RECEIVE",  # 接收事件
     ]
 
-    PROMPT_EVENT = "PROMPT",
-    ERROR_EVENT = "ERROR",
-    CONNECT_EVENT = "CONNECT",
+    PROMPT_EVENT = "PROMPT"
+    DISCONN_EVENT = "DISCONN"
+    CONNECT_EVENT = "CONNECT"
     RECEIVE_EVENT = "RECEIVE"
 
     
@@ -478,11 +462,11 @@ class RenClient(object):
         self.reply = None
 
         self.prompt_dict = {}
-        self.error_event = []
+        self.disconn_event = []
         self.receive_event = []
         self.conn_event = []
 
-        self.error_log = {}
+        self.log = {}
 
     def set_prompt(self, prompt: str | set, func, *args, **kwargs):
         """调用该方法，创建一个命令，当服务端发送该命令后执行绑定的函数。命令将作为第一个参数传入指定函数中。
@@ -499,21 +483,19 @@ class RenClient(object):
         
         self.prompt_dict[prompt] = [func, args, kwargs]
 
-    def set_reply(self, reply: str | Message | bytes):
+    def set_reply(self, reply: str | Message):
         """调用该方法，指定接收到消息后自动回复的消息。
 
         Arguments:
             reply -- 要回复的消息。
         """       
         
-        if isinstance(reply, Message):
-            reply = reply.info
-        elif isinstance(reply, str):
-            reply = reply.encode("utf-8")
+        if not isinstance(reply, Message):
+            reply = Message(reply)
 
         self.reply = reply
 
-    def set_error_event(self, func, *args, **kwargs):
+    def set_disconn_event(self, func, *args, **kwargs):
         """调用该方法，指定当通信出现异常时的行为。异常信息将作为第一个参数传入指定函数中。
 
         不定参数为绑定的函数参数。
@@ -522,7 +504,7 @@ class RenClient(object):
             func 一个函数
         """            
 
-        self.error_event = [func, args, kwargs]
+        self.disconn_event = [func, args, kwargs]
 
     def set_receive_event(self, func, *args, **kwargs):
         """调用该方法，指定当接受到消息时的行为。接收到的数据将作为第一个参数。
@@ -562,9 +544,9 @@ class RenClient(object):
                 renpy.notify(tip)
                 renpy.pause()
 
-        elif event == RenClient.ERROR_EVENT:
-            event_counter = len(self.error_log)
-            while len(self.error_log) <= event_counter:
+        elif event == RenClient.DISCONN_EVENT:
+            event_counter = len(self.log)
+            while len(self.log) <= event_counter:
                 renpy.notify(tip)
                 renpy.pause()
 
@@ -600,22 +582,27 @@ class RenClient(object):
 
         self.close()
         if log_clear:
-            self.error_log.clear()
+            self.log.clear()
         self.run()  
+    
+    def reconn(self):
+        """调用该方法，尝试重新连接。"""
+        
+        self.socket.close()
+        self.bind()
+        self._connect()        
 
     def _connect(self):
         """该方法用于创建连接线程，用于类内部使用，不应被调用。"""
 
-        try:
-            self.socket.connect((self.target_ip, self.target_port))
-            self.is_conn = True
-        except Exception as err:
-            self.error_log[datetime.now().strftime(r"%Y-%m-%d %H:%M:%S")] = err
-            self.is_conn = False
-            if self.error_event:
-                func, args, kwargs = self.error_event
-                renpy.invoke_in_thread(func, err, *args, **kwargs)
-            return
+        while True:
+            try:
+                self.socket.connect((self.target_ip, self.target_port))
+                self.is_conn = True
+            except socket.error:
+                continue
+            else:
+                break
 
         if self.conn_event:
             func, args, kwargs = self.conn_event
@@ -631,22 +618,16 @@ class RenClient(object):
             try:
                 data = self.socket.recv(self.max_data_size)
                 self.received = True
-            except Exception as err:
+            except socket.error as err:
                 self.received = False
-                self.error_log[datetime.now().strftime(r"%Y-%m-%d %H:%M:%S")] = err
-                self.socket.close()
+                self.log[datetime.now().strftime(r"%Y-%m-%d %H:%M:%S")] = err
                 self.is_conn = False
 
-                if self.error_event:
-                    func, args, kwargs = self.error_event
+                if self.disconn_event:
+                    func, args, kwargs = self.disconn_event
                     renpy.invoke_in_thread(func, err, *args, **kwargs)
 
-                return
-            
-            if not data:
-                self.received = False
-                self.socket.close()
-                return
+                self.reconn()
             
             info = pickle.loads(data)
             data = info["data"]
@@ -658,10 +639,7 @@ class RenClient(object):
                     renpy.invoke_in_thread(func, data, *args, **kwargs)
 
             if self.reply:
-                res = self.socket.send(self.reply)
-                if not res:
-                    self.is_conn = res
-                    return
+                self.send(self.reply)
 
             if self.receive_event:
                 func, args, kwargs = self.receive_event
@@ -691,11 +669,11 @@ class RenClient(object):
         
         try:
             self.socket.send(msg.info)
-        except Exception as err:
-            self.error_log[datetime.now().strftime(r"%Y-%m-%d %H:%M:%S")] = err
+        except socket.error as err:
+            self.log[datetime.now().strftime(r"%Y-%m-%d %H:%M:%S")] = err
 
-            if self.error_event:
-                func, args, kwargs = self.error_event
+            if self.disconn_event:
+                func, args, kwargs = self.disconn_event
                 renpy.invoke_in_thread(func, err, *args, **kwargs)
 
             return False
