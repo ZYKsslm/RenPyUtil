@@ -165,7 +165,7 @@ class RenServer(object):
         self.reply = reply
 
     def set_disconn_event(self, func, *args, **kwargs):
-        """调用该方法，指定当断开连接时的行为。断连的socket将作为第一个参数传入指定函数中。
+        """调用该方法，指定当断开连接时的行为。断连的主机名称（一个元组）将作为第一个参数传入指定函数中。
 
         不定参数为绑定的函数参数。
 
@@ -318,13 +318,13 @@ class RenServer(object):
                 self.received = True
             except socket.error as err:
                 self.log[datetime.now().strftime(r"%Y-%m-%d %H:%M:%S")] = err
-                client_socket.close()
                 self.client_socket_list.remove(client_socket)
 
                 if self.disconn_event:
                     func, args, kwargs = self.disconn_event
-                    renpy.invoke_in_thread(func, client_socket, *args, **kwargs)
+                    renpy.invoke_in_thread(func, client_socket.getpeername(), *args, **kwargs)
 
+                client_socket.close()
                 return
             
             info = pickle.loads(data)
@@ -374,15 +374,15 @@ class RenServer(object):
             self.log[datetime.now().strftime(r"%Y-%m-%d %H:%M:%S")] = err
             
             try:
-                client_socket.close()
                 self.client_socket_list.remove(client_socket)
             except:
                 pass
 
             if self.disconn_event:
                 func, args, kwargs = self.disconn_event
-                renpy.invoke_in_thread(func, client_socket, *args, **kwargs)
+                renpy.invoke_in_thread(func, client_socket.getpeername(), *args, **kwargs)
 
+            client_socket.close()
             return False
         else:
             return True
@@ -496,7 +496,7 @@ class RenClient(object):
         self.reply = reply
 
     def set_disconn_event(self, func, *args, **kwargs):
-        """调用该方法，指定当通信出现异常时的行为。异常信息将作为第一个参数传入指定函数中。
+        """调用该方法，指定当断开连接时的行为。
 
         不定参数为绑定的函数参数。
 
@@ -507,7 +507,7 @@ class RenClient(object):
         self.disconn_event = [func, args, kwargs]
 
     def set_receive_event(self, func, *args, **kwargs):
-        """调用该方法，指定当接受到消息时的行为。接收到的数据将作为第一个参数。
+        """调用该方法，指定当接受到消息时的行为。接收到的数据将作为第一个参数传入指定函数中。
 
         不定关键字参数为函数参数。
 
@@ -625,7 +625,7 @@ class RenClient(object):
 
                 if self.disconn_event:
                     func, args, kwargs = self.disconn_event
-                    renpy.invoke_in_thread(func, err, *args, **kwargs)
+                    renpy.invoke_in_thread(func, *args, **kwargs)
 
                 self.reconn()
             
@@ -674,7 +674,7 @@ class RenClient(object):
 
             if self.disconn_event:
                 func, args, kwargs = self.disconn_event
-                renpy.invoke_in_thread(func, err, *args, **kwargs)
+                renpy.invoke_in_thread(func, *args, **kwargs)
 
             return False
         else:
