@@ -86,7 +86,7 @@ class RenServer(object):
 
     在子线程中运行的方法有:
         1. 使用`set_prompt`设定的命令方法。
-        2. 使用`set_receive_event` `set_conn_event` `set_diconn_event`设定的事件方法。
+        2. 使用`set_receive_event` `set_conn_event` `set_disconn_event`设定的事件方法。
         3. 所有进行通信的方法。
     """
 
@@ -164,7 +164,7 @@ class RenServer(object):
 
         self.reply = reply
 
-    def set_diconn_event(self, func, *args, **kwargs):
+    def set_disconn_event(self, func, *args, **kwargs):
         """调用该方法，指定当断开连接时的行为。断连的socket将作为第一个参数传入指定函数中。
 
         不定参数为绑定的函数参数。
