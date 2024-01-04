@@ -22,13 +22,14 @@ class Message(object):
     FILE = "file"
     IMAGE = "image"
     VOICE = "voice"
+    VIDEO = "video"
 
     def __init__(self, message: str, _type="string"):
         """初始化方法。
 
         Arguments:
             message -- 可能为一个纯字符串的消息，或一个文件的路径。
-            _type -- 文件类型。应为`Message.STRING` `Message.IMAGE` `Message.VOICE` `Message.FILE`其中一项。
+            _type -- 文件类型。应为`Message.STRING` `Message.IMAGE` `Message.VOICE` `Message.VIDEO` `Message.FILE`其中一项。
         """        
         
         self.type = _type
@@ -125,7 +126,7 @@ class RenServer(object):
         self.bind()
 
         self.client_socket_list = []
-        self.has_communicated = False
+        self.has_opened = False
         self.current_prompt = None
         self.received = False
         self.reply = None
@@ -269,6 +270,7 @@ class RenServer(object):
         self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, True)
         self.socket.bind((self.ip, self.port))
+        self.has_opened = True
     
     def run(self):
         """调用该方法，开始监听端口，创建连接线程。"""            
@@ -279,7 +281,6 @@ class RenServer(object):
             self.bind()
             self.socket.listen(self.max_conn)
 
-        self.has_communicated = True
         renpy.invoke_in_thread(self._accept)
 
     def reboot(self, log_clear=False):
@@ -289,8 +290,7 @@ class RenServer(object):
             log_clear -- 若为True，将清除日志。 (default: {False})
         """            
 
-        self.close()
-        self.close_all_conn()
+        self.bind()
         if log_clear:
             self.log.clear()
         self.run()
@@ -327,7 +327,11 @@ class RenServer(object):
                 client_socket.close()
                 return
             
-            info = pickle.loads(data)
+            try:
+                info = pickle.loads(data)
+            except pickle.PickleError as e:
+                self.log[datetime.now().strftime(r"%Y-%m-%d %H:%M:%S")] = f"接受失败！数据可能超过最大接收大小：{e}"
+                continue
             data = info["data"]
             
             for prompt in self.prompt_dict.keys():
@@ -456,7 +460,7 @@ class RenClient(object):
         self.bind()
 
         self.is_conn = False
-        self.has_communicated = False
+        self.has_opened = False
         self.received = False
         self.current_prompt = None
         self.reply = None
@@ -565,11 +569,11 @@ class RenClient(object):
         
     def bind(self):
         self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        self.has_opened = True
 
     def run(self):
         """调用该方法，开始尝试连接服务端。"""            
         
-        self.has_communicated = True
         renpy.invoke_in_thread(self._connect)
 
     def close(self):
@@ -628,8 +632,13 @@ class RenClient(object):
                     renpy.invoke_in_thread(func, *args, **kwargs)
 
                 self.reconn()
+                return
             
-            info = pickle.loads(data)
+            try:
+                info = pickle.loads(data)
+            except pickle.PickleError as e:
+                self.log[datetime.now().strftime(r"%Y-%m-%d %H:%M:%S")] = f"接受失败！数据可能超过最大接收大小：{e}"
+                continue
             data = info["data"]
 
             for prompt in self.prompt_dict.keys():
