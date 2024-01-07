@@ -37,6 +37,8 @@ image sylvie angry = "images/Sprite Starter Pack - Female White Hair/FWH angry01
 # 游戏在此开始。
  
 label start:
+    # 将角色对象加入对话组中
+    $ speanking_group.add_characters("a", "m", "s")
  
     show alice blush:
         zoom 0.65

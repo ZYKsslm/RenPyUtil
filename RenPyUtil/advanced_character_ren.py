@@ -98,7 +98,7 @@ class CharacterError(Exception):
 
     errorType = {
         0: "错误地传入了一个ADVCharacter类，请传入一个AdvancedCharacter高级角色类！",
-        1: "传入对象类型异常，请传入一个AdvancedCharacter高级角色类！",
+        1: "传入对象类型错误!",
         2: "该角色对象不在角色组内！"
     }
 
@@ -220,17 +220,18 @@ class CharacterGroup(object):
 
     def add_characters(self, *characters: AdvancedCharacter):
         """调用该方法，向角色组和对话组中添加一个或多个角色对象。"""
+        print(characters)
 
         for character in characters:
             if isinstance(character, AdvancedCharacter):
-                pass
+                self.character_group.append(character)
             elif (not isinstance(character, AdvancedCharacter)) and (isinstance(character, ADVCharacter)):
                 raise CharacterError(0)
+            elif isinstance(character, str):
+                self.speaking_group.append(character)  
             else:
                 raise CharacterError(1)
-
-            self.character_group.append(character)
-            self.speaking_group.append(character)          
+         
 
     def get_random_character(self):
         """调用该方法，返回角色组中随机一个角色对象。"""
