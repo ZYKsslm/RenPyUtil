@@ -6,11 +6,10 @@
 
 # 对话组使用的transform
 """renpy
-transform off_stress:
+transform off_stress():
     linear 0.15 alpha 0.5
 
-
-transform stress:
+transform stress():
     linear 0.15 alpha 1.0
 """
 
@@ -135,10 +134,8 @@ class AdvancedCharacter(ADVCharacter):
             attr_dict -- 一个键为属性名，值为属性值的字典。若该参数不填，则传入参数作为属性名，参数值作为属性值。 (default: {None})
 
         Example:
-            ```python
             character.add_attr(strength=100, health=100)
             character.add_attr(attr_dict={strength: 10, health: 5})
-            ```
         """
 
         attr = attr_dict if attr_dict else attrs
@@ -222,7 +219,7 @@ class CharacterGroup(object):
                 raise CharacterError(1)
 
     def add_characters(self, *characters: AdvancedCharacter):
-        """调用该方法，向角色组中添加一个或多个角色对象。"""
+        """调用该方法，向角色组和对话组中添加一个或多个角色对象。"""
 
         for character in characters:
             if isinstance(character, AdvancedCharacter):
@@ -232,7 +229,8 @@ class CharacterGroup(object):
             else:
                 raise CharacterError(1)
 
-            self.character_group.append(character)          
+            self.character_group.append(character)
+            self.speaking_group.append(character)          
 
     def get_random_character(self):
         """调用该方法，返回角色组中随机一个角色对象。"""
@@ -256,10 +254,8 @@ class CharacterGroup(object):
             attr_dict -- 一个键为属性名，值为属性值的字典。若该参数不填，则传入参数作为属性名，参数值作为属性值。 (default: {None})
 
         Example:
-            ```python
             character_group.add_group_attr(strength=100, health=100)
             character_group.add_group_attr(attr_dict={strength: 10, health: 5})
-            ```
         """
 
         attr = attr_dict if attr_dict else attrs
@@ -288,7 +284,7 @@ class CharacterGroup(object):
         for character in self.character_group:
             character.add_task(task)
 
-    def stress(self, name: str, event, **kwargs):
+    def stress(self, name: str, event, close=False, **kwargs):
         """该方法用于定义角色对象时作为回调函数使用。该方法可创建一个对话组，对话组中一个角色说话时，其他角色将变暗。
 
         Arguments:
