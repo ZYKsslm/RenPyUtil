@@ -64,5 +64,14 @@ label start:
     a "return to a"
 
     m "return to m"
+
+    # 当需要移除角色时（一位角色离场）
+    $ speaking_group.del_characters("s")
+    hide sylvie
+
+    "Sylvie left."
+
+    m "She has left now."
+    s "This is our turn."
  
     return

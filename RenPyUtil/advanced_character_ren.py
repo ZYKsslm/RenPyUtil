@@ -220,7 +220,6 @@ class CharacterGroup(object):
 
     def add_characters(self, *characters: AdvancedCharacter):
         """调用该方法，向角色组和对话组中添加一个或多个角色对象。"""
-        print(characters)
 
         for character in characters:
             if isinstance(character, AdvancedCharacter):
@@ -232,21 +231,32 @@ class CharacterGroup(object):
             else:
                 raise CharacterError(1)
          
-
     def get_random_character(self):
         """调用该方法，返回角色组中随机一个角色对象。"""
 
         character = renpy.random.choice(self.character_group)
         return character
+    
+    def get_random_speaker(self):
+        """调用该方法，返回对话组中随机一个角色对象。"""
+        
+        speaker = eval(renpy.random.choice(self.speaking_group))
+        return speaker
 
-    def del_character(self, character):
-        """调用该方法，删除角色组中的一个角色对象。
+    def del_characters(self, *characters):
+        """调用该方法，删除角色组或对话组中的一个或多个角色。
 
         Arguments:
             character -- 要删除的角色对象。
         """
-
-        self.character_group.remove(character)
+        
+        for character in characters:
+            if isinstance(character, AdvancedCharacter):
+                self.character_group.remove(character)
+            elif isinstance(character, str):
+                self.speaking_group.remove(character)
+            else:
+                raise CharacterError(2)
 
     def add_group_attr(self, attr_dict: dict = None, **attrs):
         """调用该方法，对角色组中所有角色对象创建自定义的一系列属性。
