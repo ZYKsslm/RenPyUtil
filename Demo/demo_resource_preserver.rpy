@@ -1,4 +1,4 @@
-# 详细教程请前往 renpy 中文论坛
+# RenPyUtil.resource_preserver 模块测试
 
 # 定义加密器对象
 define cryptographer = RenCryptographer(DEBUG=True)    # DEBUG 参数不填默认为 False。开启 DEBUG 将会有控制台输出
@@ -25,11 +25,11 @@ label start:
     # 共三种模式，请选择其中一项 
 
     # 通过目录匹配资源文件
-    # $ encrypt_files(Finder.get_files_by_dir("images", "audio"))
+    # $ cryptographer.encrypt_files(Finder.get_files_by_dir("images", "audio"))
     # 通过文件类型匹配资源文件
-    # $ encrypt_files(Finder.get_files_by_type("png", "jpg", "mp3"))
+    # $ cryptographer.encrypt_files(Finder.get_files_by_type("png", "jpg", "mp3"))
     # 通过正则表达式（标准）匹配资源文件
-    # $ encrypt_files(Finder.get_files_by_re(r''))
+    # $ cryptographer.encrypt_files(Finder.get_files_by_re(r''))
     
     "The test will start next."
 
