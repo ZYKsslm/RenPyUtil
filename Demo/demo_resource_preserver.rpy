@@ -1,7 +1,7 @@
 # RenPyUtil.resource_preserver 模块测试
 
 # 定义加密器对象
-define cryptographer = RenCryptographer(DEBUG=True)    # DEBUG 参数不填默认为 False。开启 DEBUG 将会有控制台输出
+define cryptographer = RenCryptographer(DEBUG=False)    # DEBUG 参数不填默认为 False。开启 DEBUG 将会有控制台输出
 
 
 image bg:
@@ -16,7 +16,7 @@ label quit:
     # 保证用户退出游戏所有资源文件一定处于加密状态
     $ cryptographer.encrypt_all(regen=True) # regen 参数表示是否使用新的加密器，这样每次进入游戏资源文件的秘钥都将不同
     # 等效语句。一般用于选择加密单个或多个资源文件
-    # $ cryptographer.encrypt_archives("images/bg.png", "audio/Beautiful World-XXme.mp3", regen=True)
+    # $ cryptographer.encrypt_archives("images/bg.png", "audio/bgm.mp3", regen=True)
     return
 
 label start:
@@ -35,10 +35,10 @@ label start:
 
     # 解密所有资源文件
     $ cryptographer.decrypt_all()
-    # $ cryptographer.decrypt_archives("images/bg.png", "audio/Beautiful World-XXme.mp3")   等效语句
+    # $ cryptographer.decrypt_archives("images/bg.png", "audio/bgm.mp3")   等效语句
 
     scene bg with dissolve
-    play music "audio/Beautiful World-XXme.mp3" fadein 0.5 fadeout 0.5
+    play music "audio/bgm.mp3" fadein 0.5 fadeout 0.5
 
     pause
 
@@ -54,7 +54,7 @@ label start:
     #     with cryptographer(all=True, regen=True):
     #         renpy.show("bg")
     #         renpy.with_statement(dissolve)
-    #         renpy.music.play("audio/Beautiful World-XXme.mp3")
+    #         renpy.music.play("audio/bgm.mp3")
 
     #         renpy.pause()
 
