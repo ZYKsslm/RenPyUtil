@@ -1,4 +1,4 @@
-# RenPyUtil.resource_preserver 模块测试
+# 详细教程请移步 renpy 中文论坛：https://www.renpy.cn/forum.php?mod=viewthread&tid=1489&page=1&extra=#pid5582
 
 # 定义加密器对象
 define cryptographer = RenCryptographer(DEBUG=False)    # DEBUG 参数不填默认为 False。开启 DEBUG 将会有控制台输出

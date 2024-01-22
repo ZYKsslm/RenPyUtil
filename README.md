@@ -10,7 +10,9 @@
 **:sparkles: 欢迎Issue, Fork和PR**
 
 ## :cd: How to use 如何使用
-把[RenPyUtil](./RenPyUtil)文件夹置于你的游戏（game）目录下即可在脚本中调用。
+
+1. 把需要要用到的[第三方库](./lib)置于你的你的游戏`game`目录下。
+2. 把[RenPyUtil](./RenPyUtil)目录置于你的游戏`game`目录下即可在脚本中调用。
 
 ## :rocket: Features 功能概览
 - [x] 高级角色类，轻松制作RPG和养成类游戏并拥有更多功能。
