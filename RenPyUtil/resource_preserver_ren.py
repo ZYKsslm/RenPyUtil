@@ -5,7 +5,7 @@
 
 
 """renpy
-init -1 python:
+python early:
 """
 
 
@@ -203,7 +203,12 @@ class RenCryptographer(object):
     def decrypt_archives(self, *files):
         """调用该方法，解密归档文件中的资源文件。""" 
         
-        renpy.pause(0.05)
+        if not self.resources:
+            return
+        
+        if self.ENCRYPT_MODE:
+            return
+        
         for file in files:
             if (resource := self.resources[file]).state == Resource.DECRYPTED:
                 continue
@@ -236,6 +241,9 @@ class RenCryptographer(object):
         
         不定关键字参数`regen`若为`True`则使用新的加密器，默认为`False`。
         """          
+        
+        if not self.resources:
+            return
         
         if self.ENCRYPT_MODE:
             return 
@@ -378,15 +386,25 @@ class RenCryptographer(object):
         else:
             self.encrypt_all()
 
-    def encrypt_files(self, files: list):
+    def encrypt_files(self, files: list, guide=True):
         """调用该函数，使用随机秘钥加密文件。
         
         使用 AES-256 加密算法 CBC 模式。
-        """    
+
+        Arguments:
+            files -- 要加密的文件列表。
+
+        Keyword Arguments:
+            guide -- 是否开启指引。 (default: {True})
+
+        Raises:
+            Exception: 未匹配到文件。
+        """        
         
         self.ENCRYPT_MODE = True
         
-        renpy.say("ZYKsslm", "接下来将进行资源文件加密，此过程当前通常不可逆，请先保证程序能够正常退出！\n准备好则请点击任意处开始加密。")
+        if guide:
+            renpy.say("ZYKsslm", "接下来将进行资源文件加密，此过程当前通常不可逆，请先保证程序能够正常退出！\n准备好则请点击任意处开始加密。")
 
         resources = {}
         
@@ -420,4 +438,5 @@ class RenCryptographer(object):
         with open(Finder.parse_path("data"), "wb") as d:
             pickle.dump(resources, d)
         
-        renpy.say("ZYKsslm", "资源文件加密成功，请点击右上角正常退出游戏，删除或注释调用了 encrypt_files() 函数的语句！\n并将加密过的资源文件打包进归档文件即 archive.rpa 中。")
+        if guide:
+            renpy.say("ZYKsslm", "资源文件加密成功，请点击右上角正常退出游戏，删除或注释调用了 encrypt_files() 函数的语句！\n并将加密过的资源文件打包进归档文件即 archive.rpa 中。")
