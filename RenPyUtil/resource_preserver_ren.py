@@ -41,7 +41,6 @@ class Finder(object):
         将在`game`目录下查找文件。
         """        
         
-        patterns = [re.compile(fr'.*\.{tp}') for tp in tps]
         base_path = Finder.parse_path()
         all_files = [file for file in os.walk(base_path)]
         
@@ -55,12 +54,12 @@ class Finder(object):
         
         files = []
         for file in abs_files:
-            matches = [re.search(pattern, file) for pattern in patterns]
-            for match in matches:
-                if match:
-                    files.append(match.group())
-        
-        return list(set(files))
+            file_tp = os.path.splitext(file)[1].replace(".", "")
+            for tp in tps:
+                if tp == file_tp:
+                    files.append(file)
+                    
+        return files
     
     @staticmethod
     def get_files_by_re(*re_strs: str):
@@ -107,7 +106,7 @@ class Finder(object):
                 abs_files += paths
 
         return abs_files
-
+        
 
 class Resource(object):
     """资源类，用于保存每一个资源文件的状态及加密信息。
@@ -119,14 +118,14 @@ class Resource(object):
     
     DECRYPTED = 1
     
-    def __init__(self, file: str, cipher: dict[str, bytes], position: tuple[int, int] = (0, 0)):
+    def __init__(self, file: str, cipher: dict[str, bytes] = {}, position: tuple[int, int] = (0, 0)):
         """初始化方法。
 
         Arguments:
             file -- 资源文件，应为renpy路径。
-            cipher -- 应为一个储存了加密信息的字典。
         
         Keyword Arguments:
+            cipher -- 应为一个储存了加密信息的字典。 (default: {{}})
             position -- 资源在归档文件中的位置。 (default: {(0, 0)})
         """        
         
@@ -168,6 +167,7 @@ class RenCryptographer(object):
         """          
     
         self.resources: dict[str, Resource] = {}
+        self.latest_files: list[str] = []
         self.context_mode = {
             "files": (),
             "kwargs": {}
@@ -209,6 +209,10 @@ class RenCryptographer(object):
         if self.ENCRYPT_MODE:
             return
         
+        if not files:
+            files = self.latest_files
+        
+        self.latest_files.clear()
         for file in files:
             if (resource := self.resources[file]).state == Resource.DECRYPTED:
                 continue
@@ -233,8 +237,10 @@ class RenCryptographer(object):
                 
             except PermissionError:
                 self.decrypt_archives(*files)
+
+            self.latest_files.append(file)
     
-    def encrypt_archives(self, *files, **kwargs):
+    def encrypt_archives(self, *files, regen=False):
         """调用该方法，加密归档文件中的资源文件。
 
         不定参数为资源文件的renpy路径。
@@ -248,12 +254,16 @@ class RenCryptographer(object):
         if self.ENCRYPT_MODE:
             return 
         
+        if not files:
+            files = self.latest_files
+        
         renpy.pause(0.05)
+        self.latest_files.clear()
         for file in files:
             if (resource := self.resources[file]).state == Resource.ENCRYPTED:
                 continue
             
-            if "regen" in kwargs and kwargs["regen"] is True:
+            if regen:
                 key = get_random_bytes(32)
                 iv = get_random_bytes(16)
                 cipher = AES.new(key, AES.MODE_CBC, iv)
@@ -278,7 +288,7 @@ class RenCryptographer(object):
                 
                 if self.DEBUG:
                     # DEBUG
-                    if "regen" in kwargs and kwargs["regen"] is True:
+                    if regen:
                         print(f"{file}已使用新的加密器加密")
                     else:
                         print(f"{file}已重新加密")
@@ -286,9 +296,11 @@ class RenCryptographer(object):
                     print(f"iv:{resource.cipher['iv']}")
                 
             except PermissionError:       
-                self.encrypt_archives(*files, **kwargs)   
+                self.encrypt_archives(*files, regen=regen)   
             finally:
                 self.save_cipher() 
+                
+            self.latest_files.append(file)
             
     def decrypt_all(self):
         """调用该方法，解密归档文件中所有处于密文状态的资源文件。
