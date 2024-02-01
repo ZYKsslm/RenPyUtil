@@ -212,6 +212,7 @@ class RenCryptographer(object):
         if not files:
             files = self.latest_files
         
+        renpy.pause(0.05)
         self.latest_files.clear()
         for file in files:
             if (resource := self.resources[file]).state == Resource.DECRYPTED:
