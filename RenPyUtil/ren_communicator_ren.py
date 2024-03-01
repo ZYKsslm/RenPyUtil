@@ -14,6 +14,8 @@ import socket
 import pickle
 import os
 
+from typing import Union
+
 
 class Message(object):
     """消息类，用于定义通信中收发的消息对象。"""
@@ -138,7 +140,7 @@ class RenServer(object):
 
         self.log = {}
 
-    def set_prompt(self, prompt: str | list | Prompt, func, *args, **kwargs):
+    def set_prompt(self, prompt: Union[str, list, Prompt], func, *args, **kwargs):
         """调用该方法，创建一个命令，当接收到该命令后执行绑定的函数。命令将作为第一个参数，客户端socket将作为第二个参数传入指定函数中。
 
         不定参数为绑定的函数参数。
@@ -153,7 +155,7 @@ class RenServer(object):
         
         self.prompt_dict[prompt] = [func, args, kwargs]
 
-    def set_reply(self, reply: str | Message):
+    def set_reply(self, reply: Union[str, Message]):
         """调用该方法，指定接收到消息后自动回复的消息。
 
         Arguments:
@@ -412,7 +414,6 @@ class RenServer(object):
         config.has_autosave = True
         renpy.block_rollback()
 
-
 class RenClient(object):
     """该类为一个客户端类。
     
@@ -472,7 +473,7 @@ class RenClient(object):
 
         self.log = {}
 
-    def set_prompt(self, prompt: str | set, func, *args, **kwargs):
+    def set_prompt(self, prompt: Union[str, set, Prompt], func, *args, **kwargs):
         """调用该方法，创建一个命令，当服务端发送该命令后执行绑定的函数。命令将作为第一个参数传入指定函数中。
 
         不定关键字参数为函数参数。
@@ -487,7 +488,7 @@ class RenClient(object):
         
         self.prompt_dict[prompt] = [func, args, kwargs]
 
-    def set_reply(self, reply: str | Message):
+    def set_reply(self, reply: Union[str, Message]):
         """调用该方法，指定接收到消息后自动回复的消息。
 
         Arguments:
