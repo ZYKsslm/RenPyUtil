@@ -1,24 +1,24 @@
 # 游戏的脚本可置于此文件中。
  
 # 先定义一个角色组
-default speanking_group = CharacterGroup()
+default speaking_group = CharacterGroup()
 
 default a = AdvancedCharacter(
     "Alice", 
     image="alice",  # 绑定相应角色的立绘图像标签
-    callback=partial(speanking_group.stress, "a") # 使用partial函数传入自带参数的回调函数。第一个参数为对话组的stress方法，第二个为当前角色对象的变量名
+    callback=partial(speaking_group.stress, "alice") # 使用partial函数传入自带参数的回调函数。第一个参数为对话组的stress方法，第二个为当前角色立绘的标签名
 )
 
 default m = AdvancedCharacter(
     "Mary",
     image="mary",
-    callback=partial(speanking_group.stress, "m")
+    callback=partial(speaking_group.stress, "mary")
 )
 
 default s = AdvancedCharacter(
     "Sylvie",
     image="sylvie",
-    callback=partial(speanking_group.stress, "s")
+    callback=partial(speaking_group.stress, "sylvie")
 )
 
 
@@ -35,10 +35,10 @@ image sylvie smile = "images/Sprite Starter Pack - Female White Hair/FWH smile01
 image sylvie angry = "images/Sprite Starter Pack - Female White Hair/FWH angry01.png"
 
 # 游戏在此开始。
- 
+
 label start:
-    # 将角色对象加入对话组中
-    $ speanking_group.add_characters("a", "m", "s")
+    # 将角色（立绘标签名）加入对话组中
+    $ speaking_group.add_characters("alice", "mary", "sylvie")
  
     show alice blush:
         zoom 0.65
@@ -66,12 +66,12 @@ label start:
     m "return to m"
 
     # 当需要移除角色时（一位角色离场）
-    $ speaking_group.del_characters("s")
+    $ speaking_group.del_characters("sylvie")
     hide sylvie
 
     "Sylvie left."
 
     m "She has left now."
-    s "This is our turn."
+    a "This is our turn."
  
     return

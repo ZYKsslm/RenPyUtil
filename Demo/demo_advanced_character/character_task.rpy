@@ -9,7 +9,6 @@ init python:
         recieve = renpy.input("So, your answer is......")
  
         return recieve
-    
 
     # 使用threading_task装饰的函数将在子线程中运行
     @threading_task
@@ -44,6 +43,7 @@ label start:
             },
             single_use=True # single_use参数若为True则该任务为一次性任务
         )
+
         thread_task = CharacterTask(
             attr_pattern={
                 "thread": True
@@ -51,8 +51,8 @@ label start:
         )
 
         # 绑定任务函数
-        love_task.add_func(love_event, e, name="ZYKsslm")
-        thread_task.add_func(thread_event)
+        love_task.add_event(love_event, e, name="ZYKsslm")
+        thread_task.add_event(thread_event)
 
         # 绑定角色任务
         e.add_task(love_task)
@@ -61,11 +61,12 @@ label start:
         e.love_point += 50
         e.health += 10
 
-        e.thread=True
+        e.thread = True
  
         # 获取任务函数返回值
-        recieve = love_task.func_return["love_event"]
-     
-    e "Your answer is '[recieve!q]'"
+        recieve = love_task.event_return["love_event"]
+    
+    if recieve:
+        e "Your answer is '[recieve!q]'"
  
     return
