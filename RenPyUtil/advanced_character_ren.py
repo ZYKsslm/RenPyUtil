@@ -17,11 +17,15 @@ transform stress():
 init -1 python:
 """
 
+from typing import Union
+import random
 from functools import partial
 
 
 def threading_task(func):
     """一个装饰器，被装饰的函数将在子线程中运行。
+    
+    被装饰的函数使用`Ren'Py API`能做到事情非常有限，通常用来调用`renpy.notify()`函数或实时更新变量。
 
     Arguments:
         func -- 一个函数。
@@ -29,6 +33,7 @@ def threading_task(func):
 
     def wrapper(*args, **kwargs):
         renpy.invoke_in_thread(func, *args, **kwargs)
+        
     return wrapper
 
 
@@ -52,26 +57,20 @@ class CharacterTask(object):
                 }
             )
 
-            eg.add_func(eg_func1, arg, kwarg="")
-            eg.add_func(eg_func2, arg, kwarg="")
+            eg.add_event(eg_func1, arg, kwarg="")
+            eg.add_event(eg_func2, arg, kwarg="")
             ```
         """            
 
         self.attr_pattern = attr_pattern
         self.single_use = single_use
-        self.func_dict = {}
+        self.event_dict = {}
+        self.event_return = {}
 
-        self.func_return = {}
-        for fn in self.func_dict.keys():
-            self.func_return.update(
-                {
-                    fn.__name__: None
-                }
-            )
-
-    def add_func(self, func, *args, **kwargs):
-        """调用该方法，给任务绑定一个函数。若函数有返回值，则返回值储存在对象的`func_return`属性中。
-        `func_return`是一个键为函数名，值为函数返回值的字典。
+    def add_event(self, func, *args, **kwargs):
+        """调用该方法，给任务绑定一个函数。若函数有返回值，则返回值储存在对象的`event_return`属性中。
+        
+        `event_return`是一个键为函数名，值为函数返回值的字典。
         在子线程中运行的函数无法取得返回值。
 
         Arguments:
@@ -80,13 +79,13 @@ class CharacterTask(object):
         不定参数为函数参数。
         """            
 
-        self.func_dict.update(
+        self.event_dict.update(
             {
                 func: (args, kwargs)
             }
         )
 
-        self.func_return.update(
+        self.event_return.update(
             {
                 func.__name__: None
             }
@@ -110,11 +109,10 @@ class CharacterError(Exception):
         return CharacterError.errorType[self.errorCode]
 
 
-NotSet = renpy.object.Sentinel("NotSet")
 class AdvancedCharacter(ADVCharacter):
     """该类继承自ADVCharacter类，在原有的基础上增添了一些新的属性和方法。"""
 
-    def __init__(self, name=NotSet, kind=None, **properties):
+    def __init__(self, name=None, kind=None, **properties):
         """初始化方法。若实例属性需要被存档保存，则定义对象时请使用`default`语句或Python语句。
 
         Keyword Arguments:
@@ -122,9 +120,11 @@ class AdvancedCharacter(ADVCharacter):
             kind -- 角色类型。 (default: {None})
         """
 
-        super().__init__(name, kind=kind, **properties)
-        self.properties = properties
-        self.task_list = []
+        if not name:
+            name = renpy.object.Sentinel("NotSet")
+        
+        super().__init__(name=name, kind=kind, **properties)
+        self.task_list: list[CharacterTask] = []
         self.customized_attr_dict = {}
 
     def add_attr(self, attr_dict: dict = None, **attrs):
@@ -167,9 +167,9 @@ class AdvancedCharacter(ADVCharacter):
     def __setattr__(self, key, value):
         super().__setattr__(key, value)
 
-        # 跳过初始化属性赋值阶段
+        # 跳过初始化阶段
         # 跳过非自定义属性赋值阶段
-        if (not hasattr(self, "customized_attr_dict")) or (not key in self.customized_attr_dict.keys()):
+        if (not hasattr(self, "customized_attr_dict")) or (key not in self.customized_attr_dict.keys()):
             return
 
         for task in self.task_list:
@@ -179,12 +179,12 @@ class AdvancedCharacter(ADVCharacter):
                     break
                     
             else:
-                for func, params in task.func_dict.items():
+                for func, params in task.event_dict.items():
                     args, kwargs = params
                     func_return = func(*args, **kwargs)
                 
                     if func_return:
-                        task.func_return[func.__name__] = func_return
+                        task.event_return[func.__name__] = func_return
 
                 if task.single_use:
                     self.task_list.remove(task)
@@ -218,8 +218,14 @@ class CharacterGroup(object):
             else:
                 raise CharacterError(1)
 
-    def add_characters(self, *characters: AdvancedCharacter):
-        """调用该方法，向角色组和对话组中添加一个或多个角色对象。"""
+    def add_characters(self, *characters: Union[AdvancedCharacter, str]):
+        """调用该方法，向角色组或对话组中添加一个或多个角色对象。
+        
+        若参数为`AdvancedCharacter`对象则加入角色组，
+        
+        若参数为字符串则加入对话组。
+        
+        """
 
         for character in characters:
             if isinstance(character, AdvancedCharacter):
@@ -231,23 +237,31 @@ class CharacterGroup(object):
             else:
                 raise CharacterError(1)
          
-    def get_random_character(self):
-        """调用该方法，返回角色组中随机一个角色对象。"""
+    def get_random_character(self, rp=True):
+        """调用该方法，返回角色组中随机一个角色对象。
 
-        character = renpy.random.choice(self.character_group)
-        return character
+        Keyword Arguments:
+            rp -- 是否使用`renpy`随机数接口。 (default: {True})
+        """        
+
+        choice = renpy.random.choice if rp else random.choice
+        
+        return choice(self.character_group)
     
-    def get_random_speaker(self):
+    def get_random_speaker(self, rp=True):
         """调用该方法，返回对话组中随机一个角色对象。"""
         
-        speaker = eval(renpy.random.choice(self.speaking_group))
-        return speaker
+        choice = renpy.random.choice if rp else random.choice
+        
+        return eval(choice(self.speaking_group))
 
-    def del_characters(self, *characters):
+    def del_characters(self, *characters: Union[AdvancedCharacter, str]):
         """调用该方法，删除角色组或对话组中的一个或多个角色。
-
-        Arguments:
-            character -- 要删除的角色对象。
+        
+        不定位置参数中的`AdvancedCharacter`对象参数将从角色组中移除，
+        
+        若为字符串则从对话组中移除。
+        
         """
         
         for character in characters:
@@ -309,13 +323,9 @@ class CharacterGroup(object):
         if name not in self.speaking_group:
             self.speaking_group.append(name)
         
+        image = renpy.get_say_image_tag()
+        renpy.show(image, at_list=[stress])
+        
         for speaker in self.speaking_group:
-            current_name = speaker
-            speaker = eval(speaker)
-            image = speaker.properties["image"]
-            
-            if current_name == name:
-                renpy.show(image, at_list=[stress])
-                continue
-            
-            renpy.show(image, at_list=[off_stress])
+            if speaker != name and renpy.showing(speaker):
+                renpy.show(speaker, at_list=[off_stress])
