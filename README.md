@@ -1,8 +1,7 @@
-<p align="center">
-  <img src="https://www.renpy.org/static/index-logo.png">
-</p>
-
 # RenPyUtil
+
+<p align="center"><img src="https://www.renpy.org/static/index-logo.png"></p>
+
 >
 > 一个Ren'Py工具包，提供了一系列基于Ren'Py的功能类，以供Ren'Py开发者调用。
 
