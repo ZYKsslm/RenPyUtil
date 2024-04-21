@@ -324,7 +324,8 @@ class CharacterGroup(object):
             self.speaking_group.append(name)
         
         image = renpy.get_say_image_tag()
-        renpy.show(image, at_list=[stress])
+        if renpy.showing(name):
+            renpy.show(image, at_list=[stress])
         
         for speaker in self.speaking_group:
             if speaker != name and renpy.showing(speaker):
