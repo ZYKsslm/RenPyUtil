@@ -1,4 +1,3 @@
-# 游戏的脚本可置于此文件中。
 init python:
  
  
@@ -25,10 +24,10 @@ default e = AdvancedCharacter("艾琳", what_color="#FF8C00", who_color="#00CED1
 label start:
  
     python:
-        # 两种给高级角色增添属性的写法
+        # 高级角色增添属性
         e.add_attr(love_point=50)
         e.add_attr(thread=False)
-        e.add_attr({"strength": 100, "health": 40})
+        e.add_attr(strength=100, health=40)
  
     # 输出角色所有的自定义属性及其值
     e "[e.customized_attr_dict!q]"
@@ -36,23 +35,16 @@ label start:
     python:
  
         # 创建一个角色任务
-        love_task = CharacterTask(
-            attr_pattern={
-                "love_point": 100,
-                "health": 50
-            },
-            single_use=True # single_use参数若为True则该任务为一次性任务
+        love_task = CharacterTask(single_use=True, # single_use参数若为True则该任务为一次性任务
+            love_point=100,
+            health=50,
         )
 
-        thread_task = CharacterTask(
-            attr_pattern={
-                "thread": True
-            }
-        )
+        thread_task = CharacterTask(False, thread=True)
 
         # 绑定任务函数
-        love_task.add_event(love_event, e, name="ZYKsslm")
-        thread_task.add_event(thread_event)
+        love_task.add_func(love_event, e, name="ZYKsslm")
+        thread_task.add_func(thread_event)
 
         # 绑定角色任务
         e.add_task(love_task)
@@ -64,7 +56,7 @@ label start:
         e.thread = True
  
         # 获取任务函数返回值
-        recieve = love_task.event_return["love_event"]
+        recieve = love_task.func_return["love_event"]
     
     if recieve:
         e "Your answer is '[recieve!q]'"

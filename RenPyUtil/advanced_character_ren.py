@@ -6,18 +6,15 @@
 
 # 对话组使用的transform
 """renpy
-transform off_stress():
-    linear 0.15 alpha 0.5
-
-transform stress():
-    linear 0.15 alpha 1.0
+transform emphasize(t, l):
+    linear t matrixcolor BrightnessMatrix(l)
 """
 
 """renpy
 init -1 python:
 """
 
-from typing import Union
+
 import random
 from functools import partial
 
@@ -37,68 +34,14 @@ def threading_task(func):
     return wrapper
 
 
-class CharacterTask(object):
-    """该类为角色任务类，用于高级角色对象绑定任务。"""        
-
-    def __init__(self, attr_pattern: dict = {}, single_use=True):
-        
-        """初始化一个任务。
-
-        Keyword Arguments:
-            attr_pattern -- 一个键为自定义属性的字典。当该角色对象的自定义属性变成字典中指定的值时执行绑定函数。 (default: {{}})
-            single_use -- 若为True，则该任务为一次性任务，即当执行过一次后就移除该任务。 (default: {True})
-
-        Example:
-            ```python
-            eg_task = CharacterTask(
-                attr_pattern={
-                    "love": 100,
-                    "health": 50
-                }
-            )
-
-            eg.add_event(eg_func1, arg, kwarg="")
-            eg.add_event(eg_func2, arg, kwarg="")
-            ```
-        """            
-
-        self.attr_pattern = attr_pattern
-        self.single_use = single_use
-        self.event_dict = {}
-        self.event_return = {}
-
-    def add_event(self, func, *args, **kwargs):
-        """调用该方法，给任务绑定一个函数。若函数有返回值，则返回值储存在对象的`event_return`属性中。
-        
-        `event_return`是一个键为函数名，值为函数返回值的字典。
-        在子线程中运行的函数无法取得返回值。
-
-        Arguments:
-            func -- 一个函数。
-
-        不定参数为函数参数。
-        """            
-
-        self.event_dict.update(
-            {
-                func: (args, kwargs)
-            }
-        )
-
-        self.event_return.update(
-            {
-                func.__name__: None
-            }
-        )
-
-
 class CharacterError(Exception):
     """该类为一个异常类，用于检测角色对象。"""
 
     errorType = {
         0: "错误地传入了一个ADVCharacter类，请传入一个AdvancedCharacter高级角色类！",
-        1: "传入对象类型错误!",
-        2: "该角色对象不在角色组内！"
+        1: "对象类型错误!",
+        2: "该角色对象不在角色组内！",
+        3: "该角色对象无图像标签，无法强调！"
     }
 
     def __init__(self, errorCode):
@@ -107,6 +50,58 @@ class CharacterError(Exception):
 
     def __str__(self):
         return CharacterError.errorType[self.errorCode]
+
+
+class CharacterTask(object):
+    """该类为角色任务类，用于高级角色对象绑定任务。"""        
+
+    def __init__(self, single_use=True, *args, **kwargs):
+        
+        """初始化一个任务。
+        
+        Keyword Arguments:
+            single_use -- 该任务是否只执行一次。 (default: {True})
+        
+        Example:
+            ```python
+            eg_task = CharacterTask("example_task", True,
+                health,
+                strength=100,
+            )
+
+            eg_task.add_func(eg_func1, *args, **kwargs)
+            eg_task.add_func(eg_func2, *args, **kwargs)
+            ```
+        """            
+
+        self.attrs_pattern = {}
+        for a in args:
+            self.attrs_pattern[a] = None
+        self.attrs_pattern.update(kwargs)
+
+        self.single_use = single_use
+        self.func_list: list[tuple[str, partial]] = []
+        self.func_return = {}
+
+    def add_func(self, func, *args, **kwargs):
+        """调用该方法，给任务绑定一个函数。若函数有返回值，则返回值储存在对象的`func_return`属性中。
+        
+        `func_return`是一个键为函数名，值为函数返回值的字典。
+        在子线程中运行的函数无法取得返回值。
+
+        Arguments:
+            func -- 一个函数。
+
+        不定参数为函数参数。
+        """            
+
+        self.func_list.append((func.__name__, partial(func, *args, **kwargs)))
+
+        self.func_return.update(
+            {
+                func.__name__: None
+            }
+        )
 
 
 class AdvancedCharacter(ADVCharacter):
@@ -121,28 +116,19 @@ class AdvancedCharacter(ADVCharacter):
         """
 
         if not name:
-            name = renpy.object.Sentinel("NotSet")
-        
-        super().__init__(name=name, kind=kind, **properties)
+            name = renpy.character.NotSet
+
         self.task_list: list[CharacterTask] = []
         self.customized_attr_dict = {}
+        super().__init__(name=name, kind=kind, **properties)
 
-    def add_attr(self, attr_dict: dict = None, **attrs):
-        """调用该方法，给该角色对象创建自定义的一系列属性。
+    def _emphasize(self, emphasize_callback, t, l):
+        """使角色对象支持强调。"""
 
-        Keyword Arguments:
-            attr_dict -- 一个键为属性名，值为属性值的字典。若该参数不填，则传入参数作为属性名，参数值作为属性值。 (default: {None})
-
-        Example:
-            character.add_attr(strength=100, health=100)
-            character.add_attr(attr_dict={strength: 10, health: 5})
-        """
-
-        attr = attr_dict if attr_dict else attrs
-
-        for a, v in attr.items():
-            setattr(self, a, v)
-            self.customized_attr_dict[a] = v
+        if self.image_tag:
+            self.display_args["callback"] = partial(emphasize_callback, self, t=t, l=l)
+        else:
+            raise CharacterError(3)
 
     def add_task(self, task: CharacterTask):
         """调用该方法，绑定一个角色任务。
@@ -152,6 +138,25 @@ class AdvancedCharacter(ADVCharacter):
         """            
 
         self.task_list.append(task)
+
+    def add_attr(self, *args, **kwargs):
+        """调用该方法，给该角色对象创建自定义的一系列属性。
+
+        属性可以无初始值。
+
+        Example:
+            character.add_attr(strength, health=5)
+            character.add_attr(strength=100, health=100)     
+        """
+
+        attrs = {}
+        for attr in args:
+            attrs[attr] = None
+
+        attrs.update(kwargs)
+
+        for a, v in attrs.items():
+            self.set_attr(a, v)
 
     def set_attr(self, attr, value):
         """调用该方法，修改一个自定义属性的值。若没有该属性则创建一个。
@@ -164,36 +169,37 @@ class AdvancedCharacter(ADVCharacter):
         setattr(self, attr, value)
         self.customized_attr_dict[attr] = value
 
-    def __setattr__(self, key, value):
-        super().__setattr__(key, value)
-
-        # 跳过初始化阶段
-        # 跳过非自定义属性赋值阶段
-        if (not hasattr(self, "customized_attr_dict")) or (key not in self.customized_attr_dict.keys()):
-            return
+    def _check_task(self, attr, value):
+        """该方法用于在更新自定义属性值时触发任务。"""
 
         for task in self.task_list:
 
-            for attr, value in task.attr_pattern.items():
+            for attr, value in task.attrs_pattern.items():
                 if getattr(self, attr) != value:
                     break
                     
             else:
-                for func, params in task.event_dict.items():
-                    args, kwargs = params
-                    func_return = func(*args, **kwargs)
+                for i in task.func_list:
+                    name, func = i
+                    func_return = func()
                 
                     if func_return:
-                        task.event_return[func.__name__] = func_return
+                        task.func_return[name] = func_return
 
                 if task.single_use:
                     self.task_list.remove(task)
+
+    def __setattr__(self, attr, value):
+        """该方法用于在设置自定义属性值时触发任务。"""
+
+        super().__setattr__(attr, value)
+        self._check_task(attr, value)
 
     def get_customized_attr(self):
         """调用该方法，返回一个键为自定义属性，值为属性值的字典，若无则为空字典。
 
         Returns:
-            个键为自定义属性，值为属性值的字典。
+            一个键为自定义属性，值为属性值的字典。
         """
 
         return self.customized_attr_dict
@@ -205,37 +211,26 @@ class CharacterGroup(object):
     def __init__(self, *characters: AdvancedCharacter):
         """初始化方法。"""
 
-        self.speaking_group = []
+        self.character_group: set[AdvancedCharacter] = set()
+        self.add_characters(*characters)
 
-        self.character_group = list(characters)
+    @staticmethod
+    def  _type_check(obj):
+        """检查对象类型。"""        
 
-        # 检查角色组中对象类型
-        for obj in self.character_group:
-            if isinstance(obj, AdvancedCharacter):
-                pass
-            elif (not isinstance(obj, AdvancedCharacter)) and (isinstance(obj, ADVCharacter)):
-                raise CharacterError(0)
-            else:
-                raise CharacterError(1)
+        if isinstance(obj, AdvancedCharacter):
+            return
+        elif (not isinstance(obj, AdvancedCharacter)) and (isinstance(obj, ADVCharacter)):
+            raise CharacterError(0)
+        else:
+            raise CharacterError(1)
 
-    def add_characters(self, *characters: Union[AdvancedCharacter, str]):
-        """调用该方法，向角色组或对话组中添加一个或多个角色对象。
-        
-        若参数为`AdvancedCharacter`对象则加入角色组，
-        
-        若参数为字符串则加入对话组。
-        
-        """
+    def add_characters(self, *characters: AdvancedCharacter):
+        """调用该方法，向角色组中添加一个或多个角色对象。"""
 
         for character in characters:
-            if isinstance(character, AdvancedCharacter):
-                self.character_group.append(character)
-            elif (not isinstance(character, AdvancedCharacter)) and (isinstance(character, ADVCharacter)):
-                raise CharacterError(0)
-            elif isinstance(character, str):
-                self.speaking_group.append(character)  
-            else:
-                raise CharacterError(1)
+            CharacterGroup._type_check(character)
+            self.character_group.add(character)
          
     def get_random_character(self, rp=True):
         """调用该方法，返回角色组中随机一个角色对象。
@@ -247,46 +242,29 @@ class CharacterGroup(object):
         choice = renpy.random.choice if rp else random.choice
         
         return choice(self.character_group)
-    
-    def get_random_speaker(self, rp=True):
-        """调用该方法，返回对话组中随机一个角色对象。"""
-        
-        choice = renpy.random.choice if rp else random.choice
-        
-        return eval(choice(self.speaking_group))
 
-    def del_characters(self, *characters: Union[AdvancedCharacter, str]):
-        """调用该方法，删除角色组或对话组中的一个或多个角色。
-        
-        不定位置参数中的`AdvancedCharacter`对象参数将从角色组中移除，
-        
-        若为字符串则从对话组中移除。
-        
-        """
+    def del_characters(self, *characters: AdvancedCharacter):
+        """调用该方法，删除角色组中的一个或多个角色。"""
         
         for character in characters:
-            if isinstance(character, AdvancedCharacter):
-                self.character_group.remove(character)
-            elif isinstance(character, str):
-                self.speaking_group.remove(character)
-            else:
-                raise CharacterError(2)
+            CharacterGroup._type_check(character)
+            self.character_group.remove(character)
 
-    def add_group_attr(self, attr_dict: dict = None, **attrs):
+    def add_group_attr(self, *args, **kwargs):
         """调用该方法，对角色组中所有角色对象创建自定义的一系列属性。
 
-        Keyword Arguments:
-            attr_dict -- 一个键为属性名，值为属性值的字典。若该参数不填，则传入参数作为属性名，参数值作为属性值。 (default: {None})
-
         Example:
+            character_group.add_group_attr(strength, health=5)
             character_group.add_group_attr(strength=100, health=100)
-            character_group.add_group_attr(attr_dict={strength: 10, health: 5})
         """
 
-        attr = attr_dict if attr_dict else attrs
+        attrs = {}
+        for a in args:
+            attrs[a] = None
+        attrs.update(kwargs)
 
         for character in self.character_group:
-            character.add_attr(attr)
+            character.add_attr(*args, **kwargs)
 
     def set_group_attr(self, attr, value):
         """调用该方法，更改角色组中所有角色对象的一项自定义属性值。若没有该属性，则创建一个。
@@ -309,24 +287,50 @@ class CharacterGroup(object):
         for character in self.character_group:
             character.add_task(task)
 
-    def stress(self, name: str, event, close=False, **kwargs):
-        """该方法用于定义角色对象时作为回调函数使用。该方法可创建一个对话组，对话组中一个角色说话时，其他角色将变暗。
 
+class SpeakingGroup(CharacterGroup):
+    """该类继承自CharacterGroup类，用于管理角色发言组。"""
+
+    def __init__(self, *characters: AdvancedCharacter, t=0.15, l=-0.3):
+        """初始化方法。
+        
         Arguments:
-            name -- 角色对象的字符串形式。
-            event -- 自动传入的事件。
+            t -- 转变的时长 (default: {0.15})
+            l -- 变暗的明度。 (default: {-1})
+        """
+        
+        self.t = t
+        self.l = l
+
+        self.character_group: set[AdvancedCharacter] = set()
+        self.add_characters(*characters)
+
+    def add_characters(self, *characters: AdvancedCharacter):
+        for character in characters:
+            CharacterGroup._type_check(character)
+            character._emphasize(self.emphasize, self.t, self.l)
+            self.character_group.add(character)
+
+    def emphasize(self, character: AdvancedCharacter, event, t=0.15, l=-0.3, **kwargs):
+        """该方法用于定义角色对象时作为回调函数使用。该方法可创建一个对话组，对话组中一个角色说话时，其他角色将变暗。
         """            
 
         if not event == "begin":
             return
 
-        if name not in self.speaking_group:
-            self.speaking_group.append(name)
+        if character not in self.character_group:
+            self.add_characters(character)
         
         image = renpy.get_say_image_tag()
-        if renpy.showing(name):
-            renpy.show(image, at_list=[stress])
+        if renpy.showing(character.image_tag):
+            renpy.show(
+                image, 
+                at_list=[emphasize(t, 0)]
+            )
         
-        for speaker in self.speaking_group:
-            if speaker != name and renpy.showing(speaker):
-                renpy.show(speaker, at_list=[off_stress])
+        for speaker in self.character_group:
+            if speaker != character and renpy.showing(speaker.image_tag):
+                renpy.show(
+                    speaker.image_tag, 
+                    at_list=[emphasize(t, l)]
+                )
