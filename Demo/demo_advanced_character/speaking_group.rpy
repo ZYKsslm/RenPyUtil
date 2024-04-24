@@ -15,7 +15,7 @@ default s = AdvancedCharacter(
     image="sylvie",
 )
 
-# 定义一个角色组
+# 定义一个对话组
 default speaking_group = SpeakingGroup(a, m, s)
 
 
@@ -38,8 +38,8 @@ label start:
         xysize (1920, 1080)
         truecenter
 
-    # 将角色（立绘标签名）加入对话组中
-    $ speaking_group.add_characters(a, m, s)
+    # 将角色加入对话组中
+    #$ speaking_group.add_characters(a, m, s)
 
     a "Hello, my name is Alice. How can I help you today?"
 
