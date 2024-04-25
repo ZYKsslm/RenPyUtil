@@ -55,7 +55,7 @@ class CharacterError(Exception):
 class CharacterTask(object):
     """该类为角色任务类，用于高级角色对象绑定任务。"""        
 
-    def __init__(self, single_use=True, *args, **kwargs):
+    def __init__(self, single_use=True, **attrs):
         
         """初始化一个任务。
         
@@ -64,20 +64,14 @@ class CharacterTask(object):
         
         Example:
             ```python
-            eg_task = CharacterTask("example_task", True,
-                health,
-                strength=100,
-            )
+            eg_task = CharacterTask(True, strength=100)
 
             eg_task.add_func(eg_func1, *args, **kwargs)
             eg_task.add_func(eg_func2, *args, **kwargs)
             ```
         """            
 
-        self.attrs_pattern = {}
-        for a in args:
-            self.attrs_pattern[a] = None
-        self.attrs_pattern.update(kwargs)
+        self.attrs_pattern = attrs
 
         self.single_use = single_use
         self.func_list: list[tuple[str, partial]] = []
