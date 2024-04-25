@@ -139,21 +139,14 @@ class AdvancedCharacter(ADVCharacter):
 
         self.task_list.append(task)
 
-    def add_attr(self, *args, **kwargs):
+    def add_attr(self, **attrs):
         """调用该方法，给该角色对象创建自定义的一系列属性。
 
         属性可以无初始值。
 
         Example:
-            character.add_attr(strength, health=5)
             character.add_attr(strength=100, health=100)     
         """
-
-        attrs = {}
-        for attr in args:
-            attrs[attr] = None
-
-        attrs.update(kwargs)
 
         for a, v in attrs.items():
             self.set_attr(a, v)
@@ -250,21 +243,15 @@ class CharacterGroup(object):
             CharacterGroup._type_check(character)
             self.character_group.remove(character)
 
-    def add_group_attr(self, *args, **kwargs):
+    def add_group_attr(self, **kwargs):
         """调用该方法，对角色组中所有角色对象创建自定义的一系列属性。
 
         Example:
-            character_group.add_group_attr(strength, health=5)
             character_group.add_group_attr(strength=100, health=100)
         """
 
-        attrs = {}
-        for a in args:
-            attrs[a] = None
-        attrs.update(kwargs)
-
         for character in self.character_group:
-            character.add_attr(*args, **kwargs)
+            character.add_attr(**kwargs)
 
     def set_group_attr(self, attr, value):
         """调用该方法，更改角色组中所有角色对象的一项自定义属性值。若没有该属性，则创建一个。
@@ -308,7 +295,7 @@ class SpeakingGroup(CharacterGroup):
     def add_characters(self, *characters: AdvancedCharacter):
         for character in characters:
             CharacterGroup._type_check(character)
-            character._emphasize(self.emphasize, self.t, self.l)
+            character._emphasize(self.emphasize, self.t, self.l)    # 使角色支持强调
             self.character_group.add(character)
 
     def emphasize(self, character: AdvancedCharacter, event, t=0.15, l=-0.3, **kwargs):
