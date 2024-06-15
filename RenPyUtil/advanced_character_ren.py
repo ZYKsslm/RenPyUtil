@@ -29,7 +29,7 @@ def threading_task(func):
     """        
 
     def wrapper(*args, **kwargs):
-        renpy.invoke_in_thread(func, *args, **kwargs)
+        renpy.invoke_in_thread(func, *args, **kwargs) # type: ignore
         
     return wrapper
 
@@ -98,7 +98,7 @@ class CharacterTask(object):
         )
 
 
-class AdvancedCharacter(ADVCharacter):
+class AdvancedCharacter(ADVCharacter): # type: ignore
     """该类继承自ADVCharacter类，在原有的基础上增添了一些新的属性和方法。"""
 
     def __init__(self, name=None, kind=None, **properties):
@@ -110,7 +110,7 @@ class AdvancedCharacter(ADVCharacter):
         """
 
         if not name:
-            name = renpy.character.NotSet
+            name = renpy.character.NotSet # type: ignore
 
         self.task_list: list[CharacterTask] = []
         self.customized_attr_dict = {}
@@ -207,7 +207,7 @@ class CharacterGroup(object):
 
         if isinstance(obj, AdvancedCharacter):
             return
-        elif (not isinstance(obj, AdvancedCharacter)) and (isinstance(obj, ADVCharacter)):
+        elif (not isinstance(obj, AdvancedCharacter)) and (isinstance(obj, ADVCharacter)): # type: ignore
             raise CharacterError(0)
         else:
             raise CharacterError(1)
@@ -226,9 +226,9 @@ class CharacterGroup(object):
             rp -- 是否使用`renpy`随机数接口。 (default: {True})
         """        
 
-        choice = renpy.random.choice if rp else random.choice
+        choice = renpy.random.choice if rp else random.choice # type: ignore
         
-        return choice(self.character_group)
+        return choice(list(self.character_group))
 
     def del_characters(self, *characters: AdvancedCharacter):
         """调用该方法，删除角色组中的一个或多个角色。"""
@@ -283,8 +283,7 @@ class SpeakingGroup(CharacterGroup):
         self.t = t
         self.l = l
 
-        self.character_group: set[AdvancedCharacter] = set()
-        self.add_characters(*characters)
+        super().__init__(*characters)
 
     def add_characters(self, *characters: AdvancedCharacter):
         for character in characters:
@@ -302,16 +301,16 @@ class SpeakingGroup(CharacterGroup):
         if character not in self.character_group:
             self.add_characters(character)
         
-        image = renpy.get_say_image_tag()
-        if renpy.showing(character.image_tag):
-            renpy.show(
+        image = renpy.get_say_image_tag() # type: ignore
+        if renpy.showing(character.image_tag): # type: ignore
+            renpy.show( # type: ignore
                 image, 
-                at_list=[emphasize(t, 0)]
+                at_list=[emphasize(t, 0)] # type: ignore
             )
         
         for speaker in self.character_group:
-            if speaker != character and renpy.showing(speaker.image_tag):
-                renpy.show(
+            if speaker != character and renpy.showing(speaker.image_tag): # type: ignore
+                renpy.show( # type: ignore
                     speaker.image_tag, 
-                    at_list=[emphasize(t, l)]
+                    at_list=[emphasize(t, l)] # type: ignore
                 )
