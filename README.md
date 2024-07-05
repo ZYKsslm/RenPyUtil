@@ -19,7 +19,6 @@
 - [x] 高级角色类，轻松制作RPG和养成类游戏并拥有更多功能。
 - [x] 基于socket的TCP协议多线程网络通信支持，让多个玩家在网络中通信。
 - [x] ChatGPT接口适配。
-- [x] 新的加密打包解决方案，保护资源文件。
 
 ......
 
@@ -35,16 +34,15 @@
     - [服务端通信](./Demo/demo_ren_communicator/server.rpy)
 3. `ren_chatgpt`
     - [与ChatGPT对话](./Demo/demo_ren_chatgpt.rpy)
-4. `resource_preserver`
-    - [保护你的资源文件](./Demo/demo_resource_preserver.rpy)
 
 ## :bar_chart: Module List 已经实现的所有模块
 
 1. [`advanced_character`](./RenPyUtil/advanced_character_ren.py)
 2. [`ren_communicator`](./RenPyUtil/advanced_character_ren.py)
 3. [`ren_chatgpt`](./RenPyUtil/ren_chatgpt_ren.py)
-4. [`resource_preserver`](./RenPyUtil/resource_preserver_ren.py)
 
 ## :book: 说明
+
+**`resource_preserver`模块已暂时移除**
 
 该项目使用 MIT 协议开源，但若使用需要在程序中标明。
