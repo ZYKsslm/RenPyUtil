@@ -30,7 +30,7 @@
     - [角色任务](./Demo/demo_advanced_character/character_task.rpy)
     - [对话组](./Demo/demo_advanced_character/speaking_group.rpy)
 2. `ren_communicator`
-    - [客户端通信](./Demo/demo_ren_communicator/client.rpyy)
+    - [客户端通信](./Demo/demo_ren_communicator/client.rpy)
     - [服务端通信](./Demo/demo_ren_communicator/server.rpy)
 3. `ren_chatgpt`
     - [与ChatGPT对话](./Demo/demo_ren_chatgpt.rpy)
@@ -38,7 +38,7 @@
 ## :bar_chart: Module List 已经实现的所有模块
 
 1. [`advanced_character`](./RenPyUtil/advanced_character_ren.py)
-2. [`ren_communicator`](./RenPyUtil/advanced_character_ren.py)
+2. [`ren_communicator`](./RenPyUtil/RenCommunicator/)
 3. [`ren_chatgpt`](./RenPyUtil/ren_chatgpt_ren.py)
 
 ## :book: 说明
