@@ -272,9 +272,13 @@ class Message(object):
             return
         
         if not self._movie:
-            cache_name = f"{time.time()}.{self.fmt.decode()}"
+            cache_name = f"{time.time()}{self.fmt.decode()}"
             cache_path = Message.parse_path(cache_path, cache_name)
-            with open(cache_path, "wb+") as cache:
+            cache_dir = Message.parse_path(cache_path)
+            if not os.path.exists(cache_dir):
+                os.makedirs(cache_dir)
+
+            with open(cache_path, "wb") as cache:
                 cache.write(self.data)
             Message.logger.debug(f"成功将影片缓存到 {cache_path}")
 
