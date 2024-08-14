@@ -268,7 +268,7 @@ class Message(object):
         其他关键字参数将传递给 `Movie` 类
         """
 
-        if self.type != self.VIDEO:
+        if self.type != self.MOVIE:
             return
         
         if not self._movie:
