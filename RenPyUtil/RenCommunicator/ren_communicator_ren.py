@@ -273,8 +273,8 @@ class Message(object):
         
         if not self._movie:
             cache_name = f"{int(time.time())}{self.fmt.decode()}"
-            cache_path = Message.parse_path(cache_path, cache_name)
             cache_dir = Message.parse_path(cache_path)
+            cache_path = Message.parse_path(cache_path, cache_name)
             if not os.path.exists(cache_dir):
                 os.makedirs(cache_dir)
 
