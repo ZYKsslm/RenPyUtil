@@ -303,7 +303,7 @@ class RenServer(object):
     """该类为一个服务器类。基于socket进行多线程通信"""
 
     logger = set_logger("RenServer", "RenCommunicator.log")
-
+    
     def __init__(self, max_conn=5, max_data_size=104857600, ip="0.0.0.0", port=8888):
         """初始化方法。
 
@@ -548,14 +548,12 @@ class RenClient(object):
 
     logger = set_logger("RenClient", "RenCommunicator.log")
 
-    def __init__(self, target_ip, target_port, max_data_size=104857600):
-        """初始化方法。
-
-        Arguments:
-            target_ip -- 服务器IP。
-            target_port -- 服务器端口。
+    def __init__(self, target_ip=None, target_port=None, max_data_size=104857600):
+        """初始化方法
 
         Keyword Arguments:
+            target_ip -- 服务器IP。 (default: {None})
+            target_port -- 服务器端口。 (default: {None})
             max_data_size -- 接收数据的最大大小。默认为100M。 (default: {104857600})
             character -- 该参数应为一个角色对象，用于将字符串消息保存在历史记录中。 (default: {None})
         """                       
@@ -573,6 +571,20 @@ class RenClient(object):
         self.chat_mode = False
         self.chat_screen = "ren_communicator_chat"
         self.msg_list: list[Message] = []
+
+    def set_target(self, target_ip, target_port):
+        """调用该方法，设置服务器地址。
+
+        Arguments:
+            target_ip -- 服务器IP。
+            target_port -- 服务器端口。
+        """
+
+        self.target_ip = target_ip
+        self.target_port = target_port
+        self.target_address = f"{self.target_ip}:{self.target_port}"
+
+        return self
 
     def run(self):
         """调用该方法，开始尝试连接服务器。在快进状态下不会有任何效果"""            
