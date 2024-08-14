@@ -141,10 +141,10 @@ class Message(object):
  
         """
 
-        if not renpy.exists(img_path):
+        if not os.path.exists(img_path):
            Message.logger.warning(f"未找到该图片：{img_path}，请确保路径符合 Ren'Py 规范")
         else:
-            with open(Message.parse_path(img_path), "rb") as img:
+            with open(img_path, "rb") as img:
                 data = img.read()
 
             fmt = os.path.splitext(img_path)[1].encode()
@@ -163,10 +163,10 @@ class Message(object):
             一个 `Message` 对象
         """
 
-        if not renpy.exists(audio_path):
+        if not os.path.exists(audio_path):
             Message.logger.warning(f"未找到该音频：{audio_path}，请确保路径符合 Ren'Py 规范")
         else:
-            with open(Message.parse_path(audio_path), "rb") as audio:
+            with open(audio_path, "rb") as audio:
                 data = audio.read()
 
             fmt = os.path.splitext(audio_path)[1].encode()
@@ -188,10 +188,10 @@ class Message(object):
             Exception -- 若影片路径不存在，则抛出异常。 
         """
 
-        if not renpy.exists(movie_path):
+        if not os.path.exists(movie_path):
             Message.logger.warning(f"未找到该影片：{movie_path}，请确保路径符合 Ren'Py 规范")
         else:
-            with open(Message.parse_path(movie_path), "rb") as movie:
+            with open(movie_path, "rb") as movie:
                 data = movie.read()
 
             fmt = os.path.splitext(movie_path)[1].encode()
