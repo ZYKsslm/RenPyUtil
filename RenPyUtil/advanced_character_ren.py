@@ -282,8 +282,19 @@ class SpeakingGroup(CharacterGroup):
         
         self.t = t
         self.l = l
+        self.started = True
 
         super().__init__(*characters)
+
+    def start(self):
+        """调用该方法，开始进入发言强调状态。"""
+
+        self.started = True
+
+    def end(self):
+        """调用该方法，结束发言强调状态。"""
+
+        self.started = False
 
     def add_characters(self, *characters: AdvancedCharacter):
         for character in characters:
@@ -295,7 +306,7 @@ class SpeakingGroup(CharacterGroup):
         """该方法用于定义角色对象时作为回调函数使用。该方法可创建一个对话组，对话组中一个角色说话时，其他角色将变暗。
         """            
 
-        if not event == "begin":
+        if (not event == "begin") or (not self.started):
             return
 
         if character not in self.character_group:
