@@ -453,7 +453,7 @@ class InteractiveLive2D(Live2D):
         render = super().render(width, height, st, at)
         self.size = render.get_size()
         self.st = st
-        if self.motions != self.idle_motions:
+        if self.motions != self.idle_motions and self.current_assembly:
             self._end_assembly(st)
         
         return render
@@ -485,3 +485,4 @@ class InteractiveLive2D(Live2D):
 
         print(x, y)
         renpy.redraw(self, 0)
+
