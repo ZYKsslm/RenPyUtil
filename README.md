@@ -18,6 +18,7 @@
 - [x] 高级角色类，轻松创建RPG和养成类游戏，具备丰富功能。
 - [x] 支持基于socket的TCP协议多线程网络通信，让多个玩家可以在网络中交流。
 - [x] 接口适配ChatGPT，便于集成智能对话功能。
+- [x] 对 `Live2D` 提供更高级的支持。
 
 ---
 
@@ -33,12 +34,15 @@
     - [服务端通信示例](./Demo/demo_ren_communicator/server.rpy)
 3. **`ren_chatgpt`**
     - [与ChatGPT对话示例](./Demo/demo_ren_chatgpt.rpy)
+4. **`InteractiveLive2D`**
+    - [Live2D示例](./Demo/demo_InteractiveLive2D.rpy)
 
 ## :bar_chart: 已实现模块列表
 
 1. [`advanced_character`](./RenPyUtil/advanced_character_ren.py)
 2. [`ren_communicator`](./RenPyUtil/RenCommunicator/)
 3. [`ren_chatgpt`](./RenPyUtil/ren_chatgpt_ren.py)
+4. [`InteractiveLive2D`](./RenPyUtil/00InteractiveLive2D_ren.py/)
 
 ## :book: 说明
 
