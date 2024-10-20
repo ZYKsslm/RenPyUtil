@@ -18,23 +18,6 @@ renpy = renpy  # type: ignore
 store = store  # type: ignore
 
 
-class Timer:
-    def __init__(self, duration: float, callback: callable, repeat=False):
-        self.duration = duration
-        self.callback = callback
-        self.repeat = repeat
-        self.t = 0.0
-
-    def start(self, t):
-        self.t = self.duration + t
-
-    def end(self, t):
-        if self.t <= t:
-            self.callback()
-            if self.repeat:
-                self.start(t)
-
-
 class Live2DAssembly:
     def __init__(self, 
         *areas,
@@ -42,7 +25,6 @@ class Live2DAssembly:
         expressions: Union[str, list[str]] = None, # 非排他性表情列表
         audio: str = None, 
         mouse: str = None, 
-        timer: Timer = None, 
         attr_getter: callable = None, 
         hovered: callable = None, 
         unhovered: callable = None, 
@@ -59,7 +41,6 @@ class Live2DAssembly:
         self.expressions = expressions or []
         self.audio = audio
         self.mouse = mouse
-        self.timer = timer
         self.attr_getter = attr_getter
         self.hovered = hovered
         self.unhovered = unhovered
@@ -119,12 +100,8 @@ class Live2DAssembly:
     def st(self, value):
         self._st = value
         self.t = value + self.duration
-        if self.timer:
-            self.timer.start(value)
 
     def end(self, t):
-        if self.timer:
-            self.timer.end(t)
         if self.keep:
             return False
         else:
