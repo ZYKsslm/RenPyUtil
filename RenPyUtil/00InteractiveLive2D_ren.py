@@ -1,7 +1,3 @@
-# 此文件提供了一系列基于Ren'Py的功能类，以供Ren'Py开发者调用
-# 作者  ZYKsslm
-# 仓库  https://github.com/ZYKsslm/RenPyUtil
-# 声明  该源码使用 MIT 协议开源，但若使用需要在程序中标明作者信息
 """renpy
 python early:
 """
@@ -17,72 +13,53 @@ Live2D = Live2D  # type: ignore
 renpy = renpy  # type: ignore
 store = store  # type: ignore
 
+from renpy.gl2.live2d import states  # type: ignore
+
 
 class Live2DAssembly:
     def __init__(self, 
         *areas,
-        motions: Union[str, list[str]] = None,
-        expressions: Union[str, list[str]] = None, # 非排他性表情列表
-        audio: str = None, 
-        mouse: str = None, 
-        attr_getter: callable = None, 
+        motions: str = None,
+        expressions: Union[str, list[str]] = None,  # 一个表情或一个非排他性表情列表
+        play = None,   # 可以 play 的对象
+        channel: str = "voice", 
+        mouse: str = None,  # 光标名称
         hovered: callable = None, 
         unhovered: callable = None, 
         action: callable = None, 
         keep=False
     ):
-        if isinstance(motions, str):
-            motions = [motions]
-        if isinstance(expressions, str):
-            expressions = [expressions]
+        # TODO: motions 和 expressions 参数适配
+        motions = [motions] if isinstance(motions, str) else motions
+        expressions = [expressions] if isinstance(expressions, str) else expressions
 
         self.areas = areas
         self.motions = motions or []
         self.expressions = expressions or []
-        self.audio = audio
+        self.play = play
+        self.channel = channel
         self.mouse = mouse
-        self.attr_getter = attr_getter
         self.hovered = hovered
         self.unhovered = unhovered
         self.action = action
         self.keep = keep
 
-        self._st = 0.0 # 开始时刻
-        self.t = 0.0   # 触发时刻
-        self.duration = 0.0 # 持续时长
-        self.modal = False  # 是否为模态动作
-
-    def set_duration(self, common):
-        self.duration = 0.0
-        for motion in self.motions:
-            self.duration += common.motions[motion].duration
-        
-        return self.duration
-
-    def get_assembly(self):
-        if self.attr_getter:
-            self.motions, self.expressions = self.attr_getter()
-        
-        return self.motions, self.expressions
+        self.modal = False
+        self.st = 0.0
 
     def contained(self, x, y):
         for area in self.areas:
             if Live2DAssembly.contained_rect(area, x, y):
                 return True
+            
         return False
 
-    def activate(self, common, st):
-        self.set_duration(common)
-        self.st = st
-
-        return self
-
-    def _action(self):
+    def is_triggered(self):
         run = True
         if self.action:
-            res = self.action()
-            run = res if res is not None else True
-        
+            if res := self.action() is not None:
+                run = bool(res)
+            
         return run
 
     @staticmethod
@@ -92,28 +69,21 @@ class Live2DAssembly:
         else:
             return False
 
-    @property
-    def st(self):
-        return self._st
-
-    @st.setter
-    def st(self, value):
-        self._st = value
-        self.t = value + self.duration
-
     def end(self, t):
         if self.keep:
             return False
         else:
-            return self.t <= t
+            # 2.0 表示的是持续时间
+            return self.st + 2.0 <= t
 
 
 class InteractiveLive2D(Live2D):
     """ `Live2D` 动作交互实现"""
 
     def __init__(self, 
-        idle_motions: Union[str, list[str]], 
-        idle_exps: Union[str, list[str]] = None, 
+        idle_motions: str, 
+        idle_exps: Union[str, list[str]] = None,    # 一个表情或一个非排他性表情列表
+        *,
         live2d_assemblies: list[Live2DAssembly] = None, 
         eye_follow=False,
         head_follow=False,
@@ -124,56 +94,57 @@ class InteractiveLive2D(Live2D):
         rotate_strength=0.02,
         max_angle=None,
         min_angle=None,
-        range=None,
+        range=None, # TODO: 待优化：交互区域范围
         **properties
     ):
         super().__init__(**properties)
-        self.all_motions = list(self.common.motions.keys())
-        self.all_expressions = list(self.common.expressions.keys())
 
-        if isinstance(idle_motions, str):
-            idle_motions = [idle_motions]
-        if isinstance(idle_exps, str):
-            idle_exps = [idle_exps]
-        
-        if not set(idle_motions).issubset(self.all_motions):
-            raise ValueError(f"未知的动作: {idle_motions}")
-        if idle_exps and (not set(idle_exps).issubset(self.all_expressions)):
-            raise ValueError(f"未知的表情: {idle_exps}")
+        # TODO: motions 和 expressions 参数适配
+        idle_motions = [idle_motions]
+        idle_exps = [idle_exps] if isinstance(idle_exps, str) else idle_exps
+
+        self.name = properties['filename']
+        self.old_state = None
+        self.new_state = None
+        self.tmp_st = 0.0
+        self.reset_st = 0.0
 
         self.motions = idle_motions
         self.used_nonexclusive = idle_exps or []
-        
-        if eye_follow or head_follow or body_follow:
-            filename: str = properties["filename"]
-            if filename.endswith(".model3.json"):
-                filename = filename.replace("model3", "physics3")
-            else:
-                name = os.path.basename(filename)
-                filename = f"{filename}/{name}.physics3.json"
-            
-            try:
-                with renpy.loader.load(filename) as f:
-                    physics_data = json.load(f)
-                    angle = physics_data["PhysicsSettings"][0]["Normalization"]["Angle"]
-                    self.max_angle = angle["Maximum"]
-                    self.min_angle = angle["Minimum"]
-            except Exception as e:
-                if max_angle and min_angle:
-                    self.max_angle = max_angle
-                    self.min_angle = min_angle
-                else:
-                    raise ValueError(f"无法获取模型角度参数: {filename}，请手动添加 max_angle 和 min_angle 参数") from e
-
         self.idle_motions = idle_motions
         self.idle_exps = idle_exps or []
         self.live2d_assemblies = live2d_assemblies or []
 
+        self.setup_following(
+            eye_follow, head_follow, body_follow, 
+            eye_center, head_center, body_center, 
+            rotate_strength, max_angle, min_angle,
+            properties["filename"]
+        )
+
+        self.mouse_pos = (0, 0)
+        self.range = range
+        self.size = (0, 0)
+        self.toggled_motions = None
+        self.toggled_exps = None
+        self.current_assembly = None
+        self.hovered_assembly = None
+        self._modal = False
+
+    def setup_following(self,
+        eye_follow, head_follow, body_follow, 
+        eye_center, head_center, body_center, 
+        rotate_strength, max_angle, min_angle,
+        filename
+    ):
         self.eye_follow = eye_follow
         self.head_follow = head_follow
         self.body_follow = body_follow
+
+        # 确保头部跟随逻辑在身体跟随时也会生效
         if not self.head_follow and self.body_follow:
             self.head_follow = True
+
         self.eye_center = eye_center
         self.head_center = head_center
         self.body_center = body_center
@@ -187,15 +158,27 @@ class InteractiveLive2D(Live2D):
             "ParamEyeBallY": 0.0
         }
 
-        self.st = None
-        self.mouse_pos = (0, 0)
-        self.range = range
-        self.size = (0, 0)
-        self.toggled_motions = None
-        self.toggled_exps = None
-        self.current_assembly = None
-        self.hovered_assembly = None
-        self._modal = False
+        self.load_physics(filename=filename, max_angle=max_angle, min_angle=min_angle)
+
+    def load_physics(self, filename: str, max_angle=None, min_angle=None):
+        if filename.endswith(".model3.json"):
+            filename = filename.replace("model3", "physics3")
+        else:
+            name = os.path.basename(filename)
+            filename = f"{filename}/{name}.physics3.json"
+        
+        try:
+            with renpy.loader.load(filename) as f:
+                physics_data = json.load(f)
+                angle = physics_data["PhysicsSettings"][0]["Normalization"]["Angle"]
+                self.max_angle = angle["Maximum"]
+                self.min_angle = angle["Minimum"]
+        except Exception as e:
+            if max_angle and min_angle:
+                self.max_angle = max_angle
+                self.min_angle = min_angle
+            else:
+                raise ValueError(f"无法获取模型角度参数: {filename}，请手动添加 max_angle 和 min_angle 参数") from e
 
     @property
     def modal(self):
@@ -210,61 +193,55 @@ class InteractiveLive2D(Live2D):
                 del store.default_mouse
 
         self._modal = value
-    
-    def turn_to_assembly(self, live2d_assembly: Live2DAssembly):
-        if live2d_assembly._action():
-            self.motions, self.used_nonexclusive = live2d_assembly.get_assembly()
-            self.current_assembly = live2d_assembly.activate(self.common, self.st)
+
+    def _start_assembly(self, live2d_assembly: Live2DAssembly):
+        if live2d_assembly.play:
+            renpy.music.play(live2d_assembly.play, channel=live2d_assembly.channel)
+        # print(f"Start Assembly self.name: {self.name}")
+        state = states[self.name]
+        # print(self.common.motions)
+
+        from renpy.display.displayable import DisplayableArguments
+        old_args = DisplayableArguments()
+        old_args.args = tuple(self.idle_motions + self.idle_exps)
+        new_args = DisplayableArguments()
+        new_args.args = tuple(live2d_assembly.motions+live2d_assembly.expressions)
         
-        renpy.redraw(self, 0)
-
-    def toggle_motion(self, motions: Union[str, list[str]], reset_exps=False):
-        self.modal = False
-        if isinstance(motions, str):
-            motions = [motions]
-
-        if motions == self.motions:
-            self.toggled_motions = motions
-            self.motions = self.idle_motions
+        if self.new_state is not None:
+            state.old = self.new_state
         else:
-            self.toggled_motion = None
-            self.motions = motions
+            state.old = self._duplicate(old_args)
 
-        if reset_exps:
-            self.used_nonexclusive = self.idle_exps
-        renpy.redraw(self, 0)
+        state.new = self._duplicate(new_args)
 
-    def toggle_exp(self, exps: Union[str, list[str]], reset_motions=False):
-        self.modal = False
-        if isinstance(exps, str):
-            exps = [exps]
+        self.old_state = state.old
+        self.new_state = state.new
+
+        self.reset_st = self.tmp_st
+        state.old_base_time = renpy.display.interface.frame_time - self.tmp_st
         
-        exps_set = set(exps)
-        used_nonexclusive_set = set(self.used_nonexclusive)
-        if exps_set.issubset(used_nonexclusive_set):
-            self.toggled_exp = exps
-            self.used_nonexclusive = list(used_nonexclusive_set - exps_set)
-        else:
-            self.toggled_exp = None
-            self.used_nonexclusive += exps
+        self.current_assembly = live2d_assembly
 
-        if reset_motions:
-            self.motions = self.idle_motions
-        renpy.redraw(self, 0)
 
-    def reset_assembly(self):
-        self.modal = False
-        self.current_assembly = None
+    def _end_assembly(self):
+        state = states[self.name]
+
+        state.old = self.new_state
+        
+        from renpy.display.displayable import DisplayableArguments
+        new_args = DisplayableArguments()
+        new_args.args = tuple(self.idle_motions + self.idle_exps)
+        state.new = self._duplicate(new_args)
+
+        self.old_state = state.old
+        self.new_state = state.new
+
+        # self.reset_st = self.tmp_st
+        # state.old_base_time = renpy.display.interface.frame_time - self.tmp_st
+
         self.motions = self.idle_motions
         self.used_nonexclusive = self.idle_exps
-        renpy.redraw(self, 0)
-
-    def _end_assembly(self, st):
-        if self.current_assembly.end(st):
-            self.current_assembly = None
-            self.motions = self.idle_motions
-            self.used_nonexclusive = self.idle_exps
-            renpy.redraw(self, 0)
+        self.current_assembly = None
 
     def update_angle(self, rotate_center):
         if self.range and (not Live2DAssembly.contained_rect(self.range, *self.mouse_pos)):
@@ -290,7 +267,13 @@ class InteractiveLive2D(Live2D):
         Ren'Py needs to cause a redraw to occur, or None if no delay
         should occur.
         """
-        
+        # print(self.name)
+        # state = states[self.name]
+        # print(state.new)
+        if self.new_state is not self and self.new_state is not None:
+            # print("Use New State to Instead")
+            return self.new_state.update(common, st, st_fade)
+
         if not self.motions:
             return
 
@@ -393,7 +376,7 @@ class InteractiveLive2D(Live2D):
             self.angle_params["ParamBodyAngleX"], self.angle_params["ParamBodyAngleY"] = self.update_angle(self.body_center)
         if self.eye_follow:
             self.angle_params["ParamEyeBallX"], self.angle_params["ParamEyeBallY"] = self.update_angle(self.eye_center)
-            
+
         for k, v in motion_data.items():
 
             kind, key = k
@@ -401,57 +384,147 @@ class InteractiveLive2D(Live2D):
 
             if kind == "PartOpacity":
                 common.model.set_part_opacity(key, value)
-                
-            elif kind == "Parameter":
+            elif kind == "Parameter" :
                 if (
                     self.head_follow and key in ("ParamAngleX", "ParamAngleY") or 
                     self.body_follow and key in ("ParamBodyAngleX", "ParamBodyAngleY") or 
                     self.eye_follow and key in ("ParamEyeBallX", "ParamEyeBallY")
                 ):
                     value = self.angle_params[key]
-
                 common.model.set_parameter(key, value, factor)
-
             elif kind == "Model":
                 common.model.set_parameter(key, value, factor)
-
+        
         if last_frame:
             return None
         else:
             return motion.wait(st, st_fade, do_fade_in, do_fade_out)
 
-    def update_expressions(self, st):
-        try:
-            return super().update_expressions(st)
-        except:
-            renpy.gl2.live2d.states[self.name].old_expressions = []
-
     def render(self, width, height, st, at):
-        render = super().render(width, height, st, at)
-        self.size = render.get_size()
-        self.st = st
-        if self.motions != self.idle_motions and self.current_assembly:
-            self._end_assembly(st)
-        
-        return render
+
+        # 此处有修改
+        st-=self.reset_st
+
+        common = self.common
+        model = common.model
+
+        # Determine if we should fade.
+        fade = self.fade if (self.fade is not None) else renpy.store._live2d_fade
+
+        if not self.name:
+            fade = False
+
+        if fade:
+
+            state = states[self.name]
+
+            if state.new is not self:
+                fade = False
+
+            if state.new_base_time is None:
+                state.new_base_time = renpy.display.interface.frame_time - st
+
+            if state.old is None:
+                fade = False
+            elif state.old_base_time is None:
+                fade = False
+            elif state.old.common is not self.common:
+                fade = False
+
+        # Reset the parameter, and update.
+        # if self.motions[0] != "hiyori_m02":
+        model.reset_parameters()
+
+        if fade:
+            t = renpy.display.interface.frame_time - state.new_base_time # type: ignore
+        else:
+            t = st
+
+        ########################
+        # 此处有修改
+        if self.current_assembly is not None and self.new_state is not None:
+            new_redraw = self.new_state.update(common, t, None)
+        else:
+            new_redraw = self.update(common, t, None)
+
+        if fade:
+            # print(f"renpy.display.interface.frame_time:{renpy.display.interface.frame_time} | state.old_base_time: {state.old_base_time} | st: {st} | parsing: {renpy.display.interface.frame_time - state.old_base_time}")
+            if self.current_assembly is not None and self.new_state is not None:
+                old_redraw = self.old_state.update(common, renpy.display.interface.frame_time - state.old_base_time, st) # type: ignore
+            else:
+                old_redraw = state.old.update(common, renpy.display.interface.frame_time - state.old_base_time, st) # type: ignore
+        else:
+            old_redraw = None
+        ##########################
+
+        # if self.motions[0] != "hiyori_m02":
+        model.finish_parameters()
+
+        # Apply the expressions.
+        expression_redraw = self.update_expressions(st)
+
+        # Apply the user-defined update.
+        if common.update_function is None:
+            user_redraw = None
+        else:
+            user_redraw = common.update_function(self, st)
+
+        # Determine when to redraw.
+        redraws = [ new_redraw, old_redraw, expression_redraw, user_redraw ]
+        redraws = [ i for i in redraws if i is not None ]
+
+        if redraws:
+            renpy.display.render.redraw(self, min(redraws))
+
+        # Get the textures.
+        textures = [ renpy.display.im.render_for_texture(d, width, height, st, at) for d in common.textures ]
+
+        sw, sh = model.get_size()
+
+        zoom = self.zoom
+
+        if zoom is None:
+            top = absolute.compute_raw(self.top, sh)
+            base = absolute.compute_raw(self.base, sh)
+
+            size = max(base - top, 1.0)
+
+            zoom = 1.0 * self.height * renpy.config.screen_height / size
+        else:
+            size = sh
+            top = 0
+
+        # Render the model.
+        rend = model.render(textures, zoom)
+
+        # Apply scaling as needed.
+        rv = renpy.exports.Render(sw * zoom, size * zoom)
+        rv.blit(rend, (0, -top * zoom))
+
+        return rv
+        # return render
         
     def event(self, ev, x, y, st):
+
         self.mouse_pos = (x, y)
+        self.tmp_st = st
+
         for live2d_assembly in self.live2d_assemblies:
+
             if live2d_assembly.modal:
                 continue
+
             if live2d_assembly.contained(x, y):
                 self.hovered_assembly = live2d_assembly
+
                 if live2d_assembly.mouse:
                     store.default_mouse = live2d_assembly.mouse
                 if live2d_assembly.hovered:
                     live2d_assembly.hovered(live2d_assembly)
                 if ev.type == pygame.MOUSEBUTTONDOWN and ev.button == 1:
-                    if live2d_assembly._action():
-                        if live2d_assembly.audio:
-                            renpy.music.play(live2d_assembly.audio, channel="voice")
-                        self.motions, self.used_nonexclusive = live2d_assembly.get_assembly()
-                        self.current_assembly = live2d_assembly.activate(self.common, st)
+                    if live2d_assembly.is_triggered():
+                        live2d_assembly.st = st
+                        self._start_assembly(live2d_assembly)
             else:
                 if live2d_assembly is self.hovered_assembly:
                     if hasattr(store, "default_mouse"):
@@ -460,6 +533,8 @@ class InteractiveLive2D(Live2D):
                         live2d_assembly.unhovered(live2d_assembly)
                     self.hovered_assembly = None
 
-        print(x, y)
-        renpy.redraw(self, 0)
+        # 这里直接设置了一个 2 秒自动关闭 assembly
+        if self.current_assembly is not None and self.current_assembly.st + 2.0 < st:
+            self._end_assembly()
 
+        # print(x, y)
