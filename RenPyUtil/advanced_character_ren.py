@@ -55,7 +55,7 @@ class CharacterError(Exception):
 class CharacterTask(object):
     """该类为角色任务类，用于高级角色对象绑定任务。"""        
 
-    def __init__(self, single_use=True, **attrs):
+    def __init__(self, single_use=True, condition_eval: str = "True", **attrs):
         
         """初始化一个任务。
         
@@ -74,6 +74,7 @@ class CharacterTask(object):
         self.attrs_pattern = attrs
 
         self.single_use = single_use
+        self.condition_eval = condition_eval
         self.func_list: list[tuple[str, partial]] = []
         self.func_return = {}
 
@@ -162,7 +163,7 @@ class AdvancedCharacter(ADVCharacter): # type: ignore
         for task in self.task_list:
 
             for attr, value in task.attrs_pattern.items():
-                if getattr(self, attr) != value:
+                if getattr(self, attr) != value or (not eval(task.condition_eval)):
                     break
                     
             else:
