@@ -133,6 +133,8 @@ class AdvancedCharacter(ADVCharacter): # type: ignore
         """            
 
         self.task_list.append(task)
+        if task.condition_eval != "True" and self._check_task not in config.periodic_callbacks:
+            config.periodic_callbacks.append(self._check_task)
 
     def add_attr(self, **attrs):
         """调用该方法，给该角色对象创建自定义的一系列属性。
@@ -157,31 +159,30 @@ class AdvancedCharacter(ADVCharacter): # type: ignore
         setattr(self, attr, value)
         self.customized_attr_dict[attr] = value
 
-    def _check_task(self, attr, value):
+    def _check_task(self):
         """该方法用于在更新自定义属性值时触发任务。"""
 
         for task in self.task_list:
-
             for attr, value in task.attrs_pattern.items():
-                if getattr(self, attr) != value or (not eval(task.condition_eval)):
+                if getattr(self, attr) != value:
                     break
-                    
             else:
-                for i in task.func_list:
-                    name, func = i
-                    func_return = func()
-                
-                    if func_return:
-                        task.func_return[name] = func_return
+                if eval(task.condition_eval):
+                    for i in task.func_list:
+                        name, func = i
+                        func_return = func()
+                    
+                        if func_return:
+                            task.func_return[name] = func_return
 
-                if task.single_use:
-                    self.task_list.remove(task)
+                    if task.single_use or task.condition_eval != "True":
+                        self.task_list.remove(task)
 
     def __setattr__(self, attr, value):
         """该方法用于在设置自定义属性值时触发任务。"""
 
         super().__setattr__(attr, value)
-        self._check_task(attr, value)
+        self._check_task()
 
     def get_customized_attr(self):
         """调用该方法，返回一个键为自定义属性，值为属性值的字典，若无则为空字典。
