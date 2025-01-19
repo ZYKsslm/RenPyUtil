@@ -11,7 +11,7 @@ init -1 python:
 
 import re
 import json
-import requests
+from httpx import Client
 
 
 class RenChatGPT(object):
@@ -31,6 +31,7 @@ class RenChatGPT(object):
         self.api = api
         self.key = key
         self.dialog = dialog
+        self.client = Client()
         self.msg = None
         self.error = None
         self.waiting = False
@@ -49,14 +50,12 @@ class RenChatGPT(object):
         不定参数`kwargs`为自定义的其他请求参数。
         """
 
-        renpy.invoke_in_thread(self._chat, msg, role, model, notice, **kwargs)
+        renpy.invoke_in_thread(self._chat, msg, role, model, **kwargs)
         while self.waiting:
-            renpy.pause()
+            renpy.pause(0)  # 非阻塞式地等待
 
-    def _chat(self, msg, role, model, notice, **kwargs):
+    def _chat(self, msg, role, model, **kwargs):
         self.waiting = True
-        if notice:  
-            renpy.notify("请求已发送，请稍后......")
         
         headers = {
             "Content-Type": "application/json",
@@ -83,21 +82,14 @@ class RenChatGPT(object):
         data.update(kwargs)
 
         try:
-            response = requests.post(self.api, headers=headers, data=json.dumps(data))
-            print(response.json())
+            response = self.client.post(self.api, headers=headers, data=json.dumps(data))
             message = response.json()["choices"][0]["message"]
             self.msg = message["content"]
             self.dialog.append(message)
         except Exception as e:
             self.msg = None
             self.error = e
-            if notice:
-                renpy.notify("发生异常，单击继续......")
-            self.waiting = False
-            return
         
-        if notice:
-            renpy.notify("接收到回复，单击继续......")
         self.waiting = False
     
     def parse_words(self, text):
