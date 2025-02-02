@@ -14,7 +14,7 @@ import os
 import pickle
 import socket
 import time
-import typing
+from typing import Optional
 
 
 # Ren'Py 相关
@@ -495,7 +495,7 @@ class RenServer(object):
         self.chat_mode = False
         self.msg_list.clear()
 
-    def get_message(self, wait_msg: typing.Union[Message, None] = None, screen="ren_communicator_chat"):
+    def get_message(self, wait_msg: Optional[Message] = None, screen="ren_communicator_chat"):
         """进入聊天模式。该模式将一直运行，直到调用 `quit_chat` 方法退出，该模式适用于简单的两人对话式聊天。
 
         当没有消息时，会显示等待消息并启用自动前进。若接受到消息，则显示消息并禁用自动前进。
@@ -735,7 +735,7 @@ class RenClient(object):
         self.chat_mode = False
         self.msg_list.clear()
 
-    def get_message(self, wait_msg: typing.Union[Message, None] = None, screen="ren_communicator_chat"):
+    def get_message(self, wait_msg: Optional[Message] = None, screen="ren_communicator_chat"):
         """进入聊天模式。该模式将一直运行，直到调用 `quit_chat` 方法退出，该模式适用于简单的两人对话式聊天。
 
         当没有消息时，会显示等待消息并启用自动前进。若接受到消息，则显示消息并禁用自动前进。
