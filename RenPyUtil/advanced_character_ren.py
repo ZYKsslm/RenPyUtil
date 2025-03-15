@@ -18,7 +18,7 @@ init -1 python:
 
 
 import random
-from enum import Enum
+from typing import Callable
 from functools import partial
 
 renpy = renpy # type: ignore
@@ -44,23 +44,20 @@ class CharacterError(Exception):
         return CharacterError.errorType[self.error_type].format(*self.args)
 
 
-class _Flag(Enum):
-    CHARACTER = "CHARACTER"
-    IGNORE = "IGNORE"
-
-
 class CharacterTask:
     """该类为角色任务类，用于高级角色对象绑定任务。"""        
 
-    def __init__(self, single_use=True):
+    def __init__(self, single_use=True, priority=0):
         
         """初始化一个任务。
         
         Keyword Arguments:
             single_use -- 该任务是否只执行一次。 (default: {True})
+            priority -- 任务优先级。 (default: {0})
         """            
 
         self.single_use = single_use
+        self.priority = priority
         self.condition_list: list[str] = []
         self.func_list = []
         self.label = None
@@ -72,7 +69,7 @@ class CharacterTask:
             task.add_condition("{health} < 50", "health")
         """        
 
-        condition = exp.format_map({arg: f"{_Flag.CHARACTER}.{arg}" for arg in args})
+        condition = exp.format_map({arg: f"CHARACTER.{arg}" for arg in args})
         self.condition_list.append(condition)
 
     def set_label(self, label: str, handler="call", *args, **kwargs):
@@ -99,7 +96,7 @@ class CharacterTask:
         
         self.label = task_label
 
-    def add_func(self, func: callable, *args, **kwargs):
+    def add_func(self, func: Callable, *args, **kwargs):
         """调用该方法，给任务添加一个函数。当条件满足时，该函数将被执行。该函数的返回值将被忽略。
         
         Arguments:
@@ -159,19 +156,33 @@ class AdvancedCharacter(ADVCharacter): # type: ignore
     def _check_task(self):
         """该方法用于在更新自定义属性值时触发任务。"""
 
-        for task in self.task_list:
-            for condition in task.condition_list:
-                if not eval(condition, {_Flag.CHARACTER: self}):
-                    return
+        if not self.task_list:
+            return
+        
+        self.task_list.sort(key=lambda x: x.priority, reverse=True)
 
+        satisfied_task: list[CharacterTask] = []
+        for task in self.task_list:
+            all_conditions_met = True
+            for condition in task.condition_list:
+                if not eval(condition, {"CHARACTER": self}):
+                    all_conditions_met = False
+                    break
+
+            if not all_conditions_met:
+                continue
+            
+            if task.label:
+                task.label()
+
+            satisfied_task.append(task)
+
+        for task in satisfied_task:
             for task_func in task.func_list:
                 task_func()
 
             if task.single_use:
                 self.task_list.remove(task)
-            
-            if task.label:
-                task.label()
 
 
 class CharacterGroup:
@@ -250,27 +261,37 @@ class CharacterGroup:
     def _check_task(self):
         """该方法用于在角色组中所有角色属性值更新时触发任务。"""
 
+        if not self.task_list:  
+            return
+        
+        self.task_list.sort(key=lambda x: x.priority, reverse=True)
+
+        satisfied_task: list[CharacterTask] = []
         for task in self.task_list:
             all_conditions_met = True
             for character in self.character_group:
                 for condition in task.condition_list:
-                    if not eval(condition, {_Flag.CHARACTER: character}):
+                    if not eval(condition, {"CHARACTER": character}):
                         all_conditions_met = False
                         break
+                
                 if not all_conditions_met:
                     break
 
             if not all_conditions_met:
                 continue
+            
+            if task.label:
+                task.label()
+            
+            satisfied_task.append(task)
 
+        for task in satisfied_task:
             for task_func in task.func_list:
                 task_func()
 
             if task.single_use:
                 self.task_list.remove(task)
-            
-            if task.label:
-                task.label()
 
     def __getattr__(self, name):
         if name in ("character_group", "task_list", "attr_list", "t", "l", "started"):
@@ -282,7 +303,7 @@ class CharacterGroup:
         if name in ("character_group", "task_list", "attr_list", "t", "l", "started"):
             return super().__setattr__(name, value)
         
-        if value == _Flag.IGNORE:
+        if value == None:
             return
         
         return self.setter(**{name: value})
@@ -312,7 +333,7 @@ class _ChrAttrSetter:
         for character in self.character_group.character_group:
             setattr(character, self.name, op(getattr(character, self.name), value))
 
-        return _Flag.IGNORE
+        return None
 
     def __iadd__(self, value):
         return self._apply_operation(lambda a, b: a + b, value)
@@ -396,3 +417,4 @@ class SpeakingGroup(CharacterGroup):
                     speaker.image_tag, 
                     at_list=[emphasize(t, l)] # type: ignore
                 )
+
