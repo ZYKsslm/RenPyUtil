@@ -8,13 +8,17 @@ python early:
     import pygame
 
     class Positioner(renpy.Displayable):
-        def __init__(self, name="", size=(100, 100), color=Color("#00d9ff", alpha=0.7), **properties):
+        def __init__(self, name="", size=(100, 100), color=Color("#00d9ff", alpha=0.7), image="", **properties):
             super().__init__(**properties)
             self._name = name
             self._name_color = Color("#e5ff00")
             self.name_displayable = Text(str(name), color=self.name_color)
             self._size = size   # 大小
+            self._zoom = (1.0, 1.0)  # 图像缩放比例
             self._color = color
+            self._image = image
+            self.opacity = 1.0
+            self.image_displayable = renpy.displayable(image) if image else None
             self._pos = (0, 0)  # 左上角顶点的坐标
             self._relative_size = (0, 0)
             self.rect = (*self.pos, *self.size)
@@ -35,12 +39,21 @@ python early:
 
         @property
         def size(self):
-            return self._size
+            return (round(self._size[0], 2), round(self._size[1], 2))
 
         @size.setter
         def size(self, value):
             self._size = value
             self.rect = (*self.pos, *self.size)
+            self._update_display()
+
+        @property
+        def zoom(self):
+            return self._zoom
+
+        @zoom.setter
+        def zoom(self, value):
+            self._zoom = value
             self._update_display()
 
         @property
@@ -50,6 +63,15 @@ python early:
         @color.setter
         def color(self, value):
             self._color = Color(color=value.hexcode, alpha=0.7)
+            self._update_display()
+
+        @property
+        def image(self):
+            return self._image
+
+        @image.setter
+        def image(self, value):
+            self._image = value
             self._update_display()
 
         @property
@@ -76,46 +98,46 @@ python early:
             renpy.redraw(self, 0)
             renpy.restart_interaction()
 
-        def toggle_lock(self):
-            self.lock = not self.lock
-            self._update_display()
-
-        def toggle_show(self):
-            self.show = not self.show
-            self._update_display()
-
-        def toggle_follow_mouse(self):
-            self.follow_mouse = not self.follow_mouse
-            self._update_display()
-
         def reset(self):
-            self.size = (100, 100)
-            self.pos = (0, 0)
-            self._relative_size = (0, 0)
+            if self.image:
+                self.zoom = (1.0, 1.0)
+            else:
+                self.size = (100, 100)
+            
+            self.opacity = 1.0
+
             self._update_display()
 
-        def modify_size(self, factor, x=True, y=True):
-            if x:
-                self.size = (round(self.size[0] * factor), self.size[1])
-                if self.size[0] < 10:
-                    self.size = (10, self.size[1])
-            if y:
-                self.size = (self.size[0], round(self.size[1] * factor))
-                if self.size[1] < 10:
-                    self.size = (self.size[0], 10)
-            self._update_display()
+        def modify(self, factor, x=True, y=True):
+            if self.image:
+                if x:
+                    self.zoom = (self.zoom[0] * factor, self.zoom[1])
+                if y:
+                    self.zoom = (self.zoom[0], self.zoom[1] * factor)
+            else:
+                if x:
+                    self.size = (self.size[0] * factor, self.size[1])
+                if y:
+                    self.size = (self.size[0], self.size[1] * factor)
 
         def plus(self, x=True, y=True):
-            self.modify_size(1.1, x, y)
+            self.modify(1.1, x, y)
 
         def minus(self, x=True, y=True):
-            self.modify_size(0.9, x, y)
+            self.modify(0.9, x, y)
 
         def render(self, width, height, st, at):
             render = renpy.Render(width, height)
             if self.show:
-                canvas = render.canvas()
-                canvas.rect(self.color, (*self.pos, *self.size))
+                if self.image:
+                    self.image_displayable = Transform(renpy.displayable(self.image), alpha=self.opacity, xzoom=self.zoom[0], yzoom=self.zoom[1])
+                    image_render = renpy.render(self.image_displayable, width, height, st, at)
+                    render.blit(image_render, self.pos)
+                    self.size = image_render.get_size()
+                else:
+                    canvas = render.canvas()
+                    self.color = self.color.replace_opacity(self.opacity)
+                    canvas.rect(self.color, (*self.pos, *self._size))
                 if self.name:
                     name_render = renpy.render(self.name_displayable, width, height, st, at)
                     render.blit(name_render, self.pos)
@@ -237,8 +259,50 @@ style cpicker_image_button:
     padding (4, 4)
     hover_foreground "#fff2"
 
+
+screen change_positioner_image(positioner):
+    default notice_value = FieldInputValue(positioner, "image")
+
+    frame:
+        xysize (850, 500)
+        align (0.5, 0.5)
+
+        hbox:
+            align (0.5, 0.5)
+            spacing 10
+
+            vbox:
+                spacing 10
+                xysize (400, 350)
+                label "手动输入:" align (0.5, 0.0)
+                input:
+                    align (0.5, 0.5)
+                    pixel_width 390
+                    multiline True
+                    copypaste True
+                    value notice_value
+            vbox:
+                spacing 10
+                xysize (400, 350)
+                label "选择图像：" align (0.5, 0.0)
+                viewport:
+                    xysize (400, 350)
+                    align (0.5, 0.5)
+                    mousewheel True
+                    draggable True
+                    scrollbars "vertical"
+
+                    vbox:
+                        xysize (400, 350)
+                        spacing 10
+                        for image in renpy.list_images():
+                            textbutton "[image]":
+                                xalign 0.5
+                                action SetField(positioner, "image", image)
+            
+        textbutton "完成" align (0.5, 0.99) action Return()
+
 screen change_positioner_name(positioner):
-    modal True
     default notice_value = FieldInputValue(positioner, "name")
 
     frame:
@@ -257,7 +321,7 @@ screen change_positioner_name(positioner):
             spacing 100
             align (0.5, 0.75)
             textbutton "颜色" action ShowMenu("color_picker", obj=positioner, field="name_color", default_color=positioner.name_color)
-            textbutton "完成" action Hide("change_positioner_name")
+            textbutton "完成" action Return()
 
 screen position_helper(*displayables):
     default positioner_group = PositionerGroup()
@@ -295,6 +359,10 @@ screen positioner(positioner, positioner_group):
             label "y轴"
             textbutton "放大" action Function(positioner.plus, x=False)
             textbutton "缩小" action Function(positioner.minus, x=False)
+            label "透明度"
+            bar:
+                xsize 250
+                value FieldValue(positioner, "opacity", 1.0)
     
     drag:
         align (0.98, 0.1)
@@ -311,14 +379,12 @@ screen positioner(positioner, positioner_group):
                 add positioner.name_displayable
             text "位置: [positioner.pos]"
             text "大小: [positioner.size]"
-            text "锁定: [positioner.lock]"
-            text "显示: [positioner.show]"
-            text "跟随: [positioner.follow_mouse]"
             label "操作"
-            textbutton "锁定/解锁" action Function(positioner.toggle_lock)
-            textbutton "显示/隐藏" action Function(positioner.toggle_show)
-            textbutton "跟随/取消" action Function(positioner.toggle_follow_mouse)
-            textbutton "修改定位器名称" action Show("change_positioner_name", positioner=positioner)
+            textbutton "添加图片" action ShowMenu("change_positioner_image", positioner=positioner)
+            textbutton "锁定/解锁" action ToggleField(positioner, "lock")
+            textbutton "显示/隐藏" action ToggleField(positioner, "show")
+            textbutton "跟随/取消" action ToggleField(positioner, "follow_mouse")
+            textbutton "修改定位器名称" action ShowMenu("change_positioner_name", positioner=positioner)
             textbutton "修改定位器颜色" action ShowMenu("color_picker", obj=positioner, field="color", default_color=positioner.color)
             textbutton "创建定位器" action Function(positioner_group.create)
             textbutton "删除定位器" action Function(positioner_group.remove, positioner)
