@@ -46,6 +46,7 @@ class Live2DAssembly:
 
         self.modal = False
         self.st = 0.0
+        self.start_st = None
 
     def contained(self, x, y):
         for area in self.areas:
@@ -75,6 +76,20 @@ class Live2DAssembly:
         else:
             # 2.0 表示的是持续时间
             return self.st + 2.0 <= t
+    
+    def __copy__(self):
+        return Live2DAssembly(
+            self.areas,
+            motions = self.motions,
+            expressions = self.expressions,
+            play = self.play,
+            channel = self.channel,
+            mouse = self.mouse,
+            hovered = self.hovered,
+            unhovered = self.unhovered,
+            action = self.action,
+            keep = self.keep
+        )
 
 
 class InteractiveLive2D(Live2D):
@@ -198,49 +213,78 @@ class InteractiveLive2D(Live2D):
         if live2d_assembly.play:
             renpy.music.play(live2d_assembly.play, channel=live2d_assembly.channel)
         # print(f"Start Assembly self.name: {self.name}")
-        state = states[self.name]
+        # state = states[self.name]
         # print(self.common.motions)
 
-        from renpy.display.displayable import DisplayableArguments
-        old_args = DisplayableArguments()
-        old_args.args = tuple(self.idle_motions + self.idle_exps)
-        new_args = DisplayableArguments()
-        new_args.args = tuple(live2d_assembly.motions+live2d_assembly.expressions)
+        # from renpy.display.displayable import DisplayableArguments
+        # old_args = DisplayableArguments()
+        # old_args.args = tuple(self.idle_motions + self.idle_exps)
+        # new_args = DisplayableArguments()
+        # new_args.args = tuple(live2d_assembly.motions+live2d_assembly.expressions)
         
-        if self.new_state is not None:
-            state.old = self.new_state
-        else:
-            state.old = self._duplicate(old_args)
+        # if self.new_state is not None:
+        #     state.old = self.new_state
+        # else:
+        #     state.old = self._duplicate(old_args)
 
-        state.new = self._duplicate(new_args)
+        # state.new = self._duplicate(new_args)
 
-        self.old_state = state.old
-        self.new_state = state.new
+        # self.old_state = state.old
+        # self.new_state = state.new
 
-        self.reset_st = self.tmp_st
-        state.old_base_time = renpy.display.interface.frame_time - self.tmp_st
-        
-        self.current_assembly = live2d_assembly
+        # self.reset_st = self.tmp_st
+        # state.old_base_time = renpy.display.interface.frame_time - self.tmp_st
+        self.current_assembly = live2d_assembly.__copy__()
+    
+
+    def _update_assembly(self, st, st_fade):
+        common = self.common
+        assembly = self.current_assembly
+        motion = common.motions[assembly.motions[0]]
+
+        if assembly.start_st is None:
+            assembly.start_st = st
+
+        w = (st - assembly.start_st) if st - assembly.start_st < 1 else 1.0
+        w = w if motion.duration - (st - assembly.start_st) > 1.0 else motion.duration-(st - assembly.start_st)
+
+        print("Motion st: %.3f ( total: %.3f )-> [ %.1f ] | widget: %.3f" % (st - assembly.start_st, motion.duration, (st - assembly.start_st) / motion.duration * 100, w))
+        motion_data = motion.get(st - assembly.start_st, 0.0, 0.0, 0.0)
+
+        for k, v in motion_data.items():
+
+            kind, key = k
+            factor, value = v
+
+            if kind == "PartOpacity":
+                common.model.set_part_opacity(key, value)
+            elif kind == "Parameter":
+                self.blend_parameter(name=key, value=value, weight=w, blend="Add")
+            elif kind == "Model":
+                self.blend_parameter(name=key, value=value, weight=w, blend="Add")
+
+        if st - assembly.start_st > motion.duration:
+            self._end_assembly()
 
 
     def _end_assembly(self):
-        state = states[self.name]
+        # state = states[self.name]
 
-        state.old = self.new_state
+        # state.old = self.new_state
         
-        from renpy.display.displayable import DisplayableArguments
-        new_args = DisplayableArguments()
-        new_args.args = tuple(self.idle_motions + self.idle_exps)
-        state.new = self._duplicate(new_args)
+        # from renpy.display.displayable import DisplayableArguments
+        # new_args = DisplayableArguments()
+        # new_args.args = tuple(self.idle_motions + self.idle_exps)
+        # state.new = self._duplicate(new_args)
 
-        self.old_state = state.old
-        self.new_state = state.new
+        # self.old_state = state.old
+        # self.new_state = state.new
 
         # self.reset_st = self.tmp_st
         # state.old_base_time = renpy.display.interface.frame_time - self.tmp_st
 
-        self.motions = self.idle_motions
-        self.used_nonexclusive = self.idle_exps
+        # self.motions = self.idle_motions
+        # self.used_nonexclusive = self.idle_exps
         self.current_assembly = None
 
     def update_angle(self, rotate_center):
@@ -395,6 +439,9 @@ class InteractiveLive2D(Live2D):
             elif kind == "Model":
                 common.model.set_parameter(key, value, factor)
         
+        if self.current_assembly is not None:
+            self._update_assembly(st, st_fade)
+
         if last_frame:
             return None
         else:
@@ -440,15 +487,9 @@ class InteractiveLive2D(Live2D):
         else:
             t = st
 
-        ########################
-        # 此处有修改
-        if self.current_assembly is not None and self.new_state is not None:
-            new_redraw = self.new_state.update(common, t, None)
-        else:
-            new_redraw = self.update(common, t, None)
+        new_redraw = self.update(common, t, None)
 
         if fade:
-            # print(f"renpy.display.interface.frame_time:{renpy.display.interface.frame_time} | state.old_base_time: {state.old_base_time} | st: {st} | parsing: {renpy.display.interface.frame_time - state.old_base_time}")
             if self.current_assembly is not None and self.new_state is not None:
                 old_redraw = self.old_state.update(common, renpy.display.interface.frame_time - state.old_base_time, st) # type: ignore
             else:
@@ -534,7 +575,7 @@ class InteractiveLive2D(Live2D):
                     self.hovered_assembly = None
 
         # 这里直接设置了一个 2 秒自动关闭 assembly
-        if self.current_assembly is not None and self.current_assembly.st + 2.0 < st:
-            self._end_assembly()
+        # if self.current_assembly is not None and self.current_assembly.st + 2.0 < st:
+        #     self._end_assembly()
 
         # print(x, y)
