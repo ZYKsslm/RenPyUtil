@@ -212,31 +212,8 @@ class InteractiveLive2D(Live2D):
     def _start_assembly(self, live2d_assembly: Live2DAssembly):
         if live2d_assembly.play:
             renpy.music.play(live2d_assembly.play, channel=live2d_assembly.channel)
-        # print(f"Start Assembly self.name: {self.name}")
-        # state = states[self.name]
-        # print(self.common.motions)
-
-        # from renpy.display.displayable import DisplayableArguments
-        # old_args = DisplayableArguments()
-        # old_args.args = tuple(self.idle_motions + self.idle_exps)
-        # new_args = DisplayableArguments()
-        # new_args.args = tuple(live2d_assembly.motions+live2d_assembly.expressions)
-        
-        # if self.new_state is not None:
-        #     state.old = self.new_state
-        # else:
-        #     state.old = self._duplicate(old_args)
-
-        # state.new = self._duplicate(new_args)
-
-        # self.old_state = state.old
-        # self.new_state = state.new
-
-        # self.reset_st = self.tmp_st
-        # state.old_base_time = renpy.display.interface.frame_time - self.tmp_st
         self.current_assembly = live2d_assembly.__copy__()
     
-
     def _update_assembly(self, st, st_fade):
         common = self.common
         assembly = self.current_assembly
@@ -244,9 +221,9 @@ class InteractiveLive2D(Live2D):
 
         if assembly.start_st is None:
             assembly.start_st = st
-
+ 
         w = (st - assembly.start_st) if st - assembly.start_st < 1 else 1.0
-        w = w if motion.duration - (st - assembly.start_st) > 1.0 else motion.duration-(st - assembly.start_st)
+        w = w if motion.duration - (st - assembly.start_st) > 1.0 else motion.duration - (st - assembly.start_st)
 
         print("Motion st: %.3f ( total: %.3f )-> [ %.1f ] | widget: %.3f" % (st - assembly.start_st, motion.duration, (st - assembly.start_st) / motion.duration * 100, w))
         motion_data = motion.get(st - assembly.start_st, 0.0, 0.0, 0.0)
@@ -266,25 +243,7 @@ class InteractiveLive2D(Live2D):
         if st - assembly.start_st > motion.duration:
             self._end_assembly()
 
-
     def _end_assembly(self):
-        # state = states[self.name]
-
-        # state.old = self.new_state
-        
-        # from renpy.display.displayable import DisplayableArguments
-        # new_args = DisplayableArguments()
-        # new_args.args = tuple(self.idle_motions + self.idle_exps)
-        # state.new = self._duplicate(new_args)
-
-        # self.old_state = state.old
-        # self.new_state = state.new
-
-        # self.reset_st = self.tmp_st
-        # state.old_base_time = renpy.display.interface.frame_time - self.tmp_st
-
-        # self.motions = self.idle_motions
-        # self.used_nonexclusive = self.idle_exps
         self.current_assembly = None
 
     def update_angle(self, rotate_center):
@@ -311,11 +270,8 @@ class InteractiveLive2D(Live2D):
         Ren'Py needs to cause a redraw to occur, or None if no delay
         should occur.
         """
-        # print(self.name)
-        # state = states[self.name]
-        # print(state.new)
+
         if self.new_state is not self and self.new_state is not None:
-            # print("Use New State to Instead")
             return self.new_state.update(common, st, st_fade)
 
         if not self.motions:
@@ -450,7 +406,7 @@ class InteractiveLive2D(Live2D):
     def render(self, width, height, st, at):
 
         # 此处有修改
-        st-=self.reset_st
+        st -= self.reset_st
 
         common = self.common
         model = common.model
@@ -479,7 +435,6 @@ class InteractiveLive2D(Live2D):
                 fade = False
 
         # Reset the parameter, and update.
-        # if self.motions[0] != "hiyori_m02":
         model.reset_parameters()
 
         if fade:
@@ -498,7 +453,6 @@ class InteractiveLive2D(Live2D):
             old_redraw = None
         ##########################
 
-        # if self.motions[0] != "hiyori_m02":
         model.finish_parameters()
 
         # Apply the expressions.
@@ -574,8 +528,4 @@ class InteractiveLive2D(Live2D):
                         live2d_assembly.unhovered(live2d_assembly)
                     self.hovered_assembly = None
 
-        # 这里直接设置了一个 2 秒自动关闭 assembly
-        # if self.current_assembly is not None and self.current_assembly.st + 2.0 < st:
-        #     self._end_assembly()
-
-        # print(x, y)
+        print(x, y)
