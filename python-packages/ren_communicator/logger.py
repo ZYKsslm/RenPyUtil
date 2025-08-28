@@ -22,11 +22,6 @@ def get_logger(logger_name: str):
     logger.setLevel(logging.DEBUG)
     formatter = logging.Formatter("%(asctime)s - %(threadName)s - %(name)s - %(levelname)s - %(message)s")
 
-    # 异步日志队列
-    log_queue = queue.Queue()
-    queue_handler = logging.handlers.QueueHandler(log_queue)
-    logger.addHandler(queue_handler)
-
     # 控制台输出
     console_handler = logging.StreamHandler()
     console_handler.setLevel(logging.DEBUG)
@@ -41,7 +36,12 @@ def get_logger(logger_name: str):
     file_handler.setLevel(logging.DEBUG)
     file_handler.setFormatter(formatter)
 
+    # 异步日志队列
+    log_queue = queue.Queue()
+    queue_handler = logging.handlers.QueueHandler(log_queue)
     queue_listener = logging.handlers.QueueListener(log_queue, console_handler, file_handler)
     queue_listener.start()
+    
+    logger.addHandler(queue_handler)
 
     return logger
