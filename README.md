@@ -26,7 +26,7 @@
 
 ## :bookmark: 使用示范
 
-每个模块都有相应的使用示范，请在 [Demo](./Demo) 中查看。
+每个模块都有相应的使用示范（迁移至`python-packages`目录中的模块的demo可能已经过时），请在 [Demo](./Demo) 中查看。
 
 1. **`advanced_character`**
     - [角色任务示例](./Demo/demo_advanced_character/character_task.rpy)
