@@ -1,7 +1,7 @@
-# 描述：优化日志，支持异步和文件轮转
-# 作者：ZYKsslm
-# 仓库：https://github.com/ZYKsslm/RenPyUtil
-# 声明：MIT协议开源，需标明作者
+# 描述  优化日志，支持异步和文件轮转
+# 作者  ZYKsslm
+# 仓库  https://github.com/ZYKsslm/RenPyUtil
+# 声明  该源码使用 MIT 协议开源，但若使用需要在程序中标明作者消息
 
 
 import os
