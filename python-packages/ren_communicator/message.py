@@ -1,4 +1,4 @@
-# 描述  RenCommunicator 是一个轻量化异步 websocket 通信库，用于在 Ren'Py 游戏中实现网络通信，适用于小型网络游戏。
+# 描述  消息类
 # 作者  ZYKsslm
 # 仓库  https://github.com/ZYKsslm/RenPyUtil
 # 声明  该源码使用 MIT 协议开源，但若使用需要在程序中标明作者消息
