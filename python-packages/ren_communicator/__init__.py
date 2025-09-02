@@ -28,5 +28,5 @@ __all__ = [
 if IN_RENPY:
     from renpy.exports import version_tuple # type: ignore
 
-    if version_tuple.major < 8:
-        raise ImportError("RenCommunicator 要求 Ren'Py 版本 8.0 或以上。")
+    if not (version_tuple.major >= 8 and version_tuple.minor >= 4):
+        raise ImportError("RenCommunicator 要求 Ren'Py 版本 8.4 或以上！")

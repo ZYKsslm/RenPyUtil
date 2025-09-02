@@ -7,7 +7,7 @@
 try:
     from renpy.exports import version_tuple # type: ignore
 except ImportError:
-    raise ImportError("ren_advanced_character 要求在 Ren'Py 环境中运行。")
+    raise ImportError("ren_advanced_character 要求在 Ren'Py 环境中运行！")
 
 from .character import *
 from .task import *
@@ -25,5 +25,5 @@ __all__ = [
 ]
 
 
-if version_tuple.major < 8:
-    raise ImportError("ren_advanced_character 要求 Ren'Py 版本 8.0 或以上。")
+if not (version_tuple.major >= 8 and version_tuple.minor >= 4):
+    raise ImportError("ren_advanced_character 要求 Ren'Py 版本 8.4 或以上！")
