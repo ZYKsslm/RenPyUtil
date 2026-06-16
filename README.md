@@ -16,9 +16,7 @@
 ## :rocket: 功能概览
 
 - [x] 轻松创建RPG和养成类游戏，具备丰富功能。
-- [x] ~~基于socket的TCP协议多线程网络通信模块，让多个玩家可以在网络中交流。~~*(已废弃)*
-- [x] 轻量化异步 websocket 通信框架，用于在 Ren'Py 游戏中实现网络通信。兼容 Ren'Py 和非 Ren'Py 环境。适用于小型网络游戏。*(测试)*
-- [x] ~~ChatGPT 接口适配，便于集成智能对话功能。~~ *(已过时)*
+- [x] 轻量化异步 websocket 通信框架，用于在 Ren'Py 游戏中实现网络通信。兼容 Ren'Py 和非 Ren'Py 环境。适用于小型网络游戏。
 - [x] Positioner 定位工具，更加便捷地定位游戏内的组件位置。
 - [x] 对 `Live2D` 提供更高级的支持。*(存在问题)*
 
@@ -45,6 +43,7 @@
 2. [`ren_communicator`](./RenPyUtil/RenCommunicator/)
 3. [`ren_chatgpt`](./RenPyUtil/ren_chatgpt_ren.py)
 4. [`InteractiveLive2D`](./RenPyUtil/00InteractiveLive2D_ren.py/)
+5. [`NetImage`](./RenPyUtil/00NetImage_ren.py)
 
 ## :bulb: 工具
 1. [`Positioner`](./RenPyUtil/Positioner)
